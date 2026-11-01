@@ -1,0 +1,553 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Bancone"><meta name="theme-color" content="#0f3b3a">
+<link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icon-180.png">
+<title>Bancone Drink</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Limelight&family=Manrope:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: ricerca in alto, poi scheda drink (ricetta, storia) e banco del bicchiere con disegno a strati; righello a tutto schermo */
+:root{
+  --bg:#edf0f1; --surface:#ffffff; --line:#d2d8db; --fg:#14201f; --muted:#5a6967; --field:#f4f6f6;
+  --accent:#a8741a; --accent-ink:#ffffff; --accent-soft:#f3e9d6; --ink:#0f3b3a;
+  --f-display:"Limelight","Didot",serif; --f-body:"Manrope",system-ui,sans-serif; --f-num:"DM Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0d1314; --surface:#151d1e; --line:#2b3839; --fg:#e8eeed; --muted:#93a4a2; --field:#111819;
+  --accent:#e0ad4c; --accent-ink:#1a1408; --accent-soft:#2c2414; --ink:#9fd6d0; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0d1314; --surface:#151d1e; --line:#2b3839; --fg:#e8eeed; --muted:#93a4a2; --field:#111819;
+  --accent:#e0ad4c; --accent-ink:#1a1408; --accent-soft:#2c2414; --ink:#9fd6d0; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15.5px;line-height:1.5}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.wrap{max-width:820px;margin:0 auto;padding-block:18px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:16px}
+.brand{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.brand h1{font-family:var(--f-display);font-weight:400;font-size:30px;margin:0;color:var(--ink);letter-spacing:.02em}
+.brand span{font-size:13px;color:var(--muted)}
+.search{position:sticky;top:env(safe-area-inset-top,0px);z-index:6;padding-block:8px;background:var(--bg)}
+.sbox{position:relative}
+.sbox input{width:100%;font:inherit;font-size:17px;color:var(--fg);background:var(--surface);border:1.5px solid var(--line);border-radius:999px;padding:13px 18px 13px 46px}
+.sbox input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.sbox svg{position:absolute;left:16px;top:50%;transform:translateY(-50%);width:20px;height:20px;color:var(--muted)}
+.sugg{position:absolute;left:0;right:0;top:calc(100% + 6px);background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:0 14px 34px -14px rgba(0,0,0,.35);list-style:none;margin:0;padding:6px;max-height:60vh;overflow:auto}
+.sugg li{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer}
+.sugg li[aria-selected="true"],.sugg li:hover{background:var(--accent-soft)}
+.sugg li b{font-weight:700}
+.sugg li small{color:var(--muted);font-size:13px;white-space:nowrap}
+.sugg .none{color:var(--muted);cursor:default}
+.quick{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.quick button{border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:999px;padding:6px 12px;font:inherit;font-size:14px;cursor:pointer}
+.quick button.rand{border-color:var(--accent);color:var(--accent);font-weight:600}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:14px}
+.dname{font-family:var(--f-display);font-weight:400;font-size:clamp(34px,8vw,52px);line-height:1.02;margin:0;color:var(--ink);text-wrap:balance}
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.tag{font-size:12px;letter-spacing:.06em;text-transform:uppercase;font-weight:700;border:1px solid var(--line);border-radius:4px;padding:2px 8px;color:var(--muted)}
+.tag.iba{border-color:var(--accent);color:var(--accent)}
+.cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px}
+h2{font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--muted);margin:0 0 8px}
+.ing{list-style:none;margin:0;padding:0}
+.ing li{display:grid;grid-template-columns:14px 1fr auto;gap:10px;align-items:center;padding:8px 0;border-bottom:1px dashed var(--line)}
+.ing li:last-child{border-bottom:0}
+.dot{width:14px;height:14px;border-radius:50%;border:1px solid rgba(0,0,0,.25)}
+.ml{font-family:var(--f-num);font-weight:500;white-space:nowrap}
+.ml small{color:var(--muted);font-weight:400}
+.extra{margin:8px 0 0;padding-left:18px;color:var(--muted);font-size:14px}
+.how{margin:0;max-width:62ch}
+.garn{font-size:14px;color:var(--muted);margin:6px 0 0}
+.story{background:var(--accent-soft);border-radius:12px;padding:16px 18px}
+.story p{margin:0;max-width:65ch;font-size:16px}
+.story p::first-letter{font-family:var(--f-display);font-size:2.6em;float:left;line-height:.9;margin:4px 8px 0 0;color:var(--accent)}
+.glasses{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+.gbtn{border:1.5px solid var(--line);background:var(--field);color:var(--fg);border-radius:10px;padding:8px 4px 6px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;font:inherit;font-size:12px;font-weight:600;min-width:0}
+.gbtn svg{width:34px;height:44px}
+.gbtn[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.gbtn .rec{font-size:10px;color:var(--accent);font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+.bench{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:18px;align-items:start}
+.diagram{background:var(--field);border-radius:12px;display:flex;justify-content:center;padding:10px;min-width:0}
+.diagram svg{width:100%;max-width:300px;height:auto}
+.ctrls{display:flex;flex-direction:column;gap:12px;min-width:0}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+label{display:flex;flex-direction:column;gap:4px;min-width:0}
+label>span{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+input[type=number]{width:100%;font-family:var(--f-num);font-size:16px;color:var(--fg);background:var(--field);border:1px solid var(--line);border-radius:8px;padding:9px 10px}
+.toggle{flex-direction:row;align-items:center;gap:8px;font-size:14px;cursor:pointer}
+.toggle input{width:20px;height:20px;accent-color:var(--accent)}
+.stepper{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.stepper button,.btn{border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:8px;padding:8px 12px;font:inherit;font-weight:600;cursor:pointer}
+.stepper b{font-family:var(--f-num);font-weight:500;min-width:4ch;text-align:center}
+.btn.main{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-size:16px;padding:13px 16px}
+.cap{font-family:var(--f-num);font-size:14px}
+.warn{font-size:14px;color:#b3412e}
+.levels{list-style:none;margin:0;padding:0;font-size:14px}
+.levels li{display:grid;grid-template-columns:14px 1fr auto;gap:8px;align-items:center;padding:5px 0}
+.levels .ml{font-size:13px}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.foot{font-size:12px;color:var(--muted)}
+.foot a{color:var(--accent)}
+/* righello: sempre scuro per contrasto */
+.ruler{position:fixed;inset:0;z-index:50;background:#0b0f10;color:#f2f2f2;touch-action:none;user-select:none;-webkit-user-select:none;overflow:hidden}
+.ruler svg{position:absolute;inset:0;width:100%;height:100%}
+.rbar{position:absolute;left:0;right:0;top:0;display:flex;gap:6px;align-items:center;justify-content:space-between;padding:calc(8px + env(safe-area-inset-top,0px)) max(10px,env(safe-area-inset-right,0px)) 8px max(10px,env(safe-area-inset-left,0px));background:rgba(11,15,16,.86);z-index:2}
+.rbar button{background:#222b2d;color:#f2f2f2;border:1px solid #3a4547;border-radius:8px;padding:8px 10px;font:inherit;font-size:14px;font-weight:600;cursor:pointer}
+.rbar .t{font-size:12px;color:#b9c4c3;flex:1;min-width:0;line-height:1.3}
+.rnudge{position:absolute;right:max(10px,env(safe-area-inset-right,0px));bottom:calc(14px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:6px;z-index:2}
+.rnudge button{width:46px;height:46px;border-radius:50%;background:#222b2d;color:#fff;border:1px solid #3a4547;font-size:20px;cursor:pointer}
+.calib{position:absolute;inset:0;z-index:3;background:#0b0f10;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:20px max(16px,env(safe-area-inset-right,0px)) calc(20px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));text-align:center}
+.calib p{margin:0;max-width:40ch;color:#d4dcdb;font-size:15px}
+.card85{border:2px dashed #e0ad4c;border-radius:3.2mm;background:rgba(224,173,76,.08);display:flex;align-items:center;justify-content:center;color:#e0ad4c;font-size:13px;font-weight:600}
+.calib input[type=range]{width:min(320px,90%);accent-color:#e0ad4c}
+.calib .row{display:flex;gap:8px}
+.calib button{background:#222b2d;color:#fff;border:1px solid #3a4547;border-radius:8px;padding:10px 14px;font:inherit;font-weight:600;cursor:pointer}
+.calib button.ok{background:#e0ad4c;color:#1a1408;border-color:#e0ad4c}
+@media (max-width:640px){.cols,.bench{grid-template-columns:1fr}.glasses{grid-template-columns:repeat(3,1fr)}}
+</style>
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}</style>
+</head><body>
+
+<div class="wrap">
+  <div class="brand"><h1>Bancone</h1><span>ricette, storie e dosi nel bicchiere</span></div>
+  <div class="search">
+    <div class="sbox" role="combobox" aria-expanded="false" aria-owns="sugg" aria-haspopup="listbox" id="combo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+      <input id="q" type="search" placeholder="Cerca un drink o un ingrediente…" autocomplete="off" aria-autocomplete="list" aria-controls="sugg" aria-label="Cerca un drink">
+      <ul class="sugg" id="sugg" role="listbox" hidden></ul>
+    </div>
+    <div class="quick" id="quick"></div>
+  </div>
+  <div id="drink"></div>
+  <p class="foot">Dosi dalla lista ufficiale <a href="https://iba-world.com/2021/02/02/2020-iba-official-cocktail-list/" target="_blank" rel="noopener">IBA (International Bartenders Association)</a>; i drink segnati come “classico” non sono nella lista IBA e seguono la ricetta più diffusa. Le storie riportano le versioni più accreditate: per molti drink l'origine è contesa. Bevi responsabilmente.</p>
+</div>
+
+<div class="ruler" id="ruler" hidden>
+  <svg id="rsvg" aria-label="Righello a grandezza reale con i livelli degli ingredienti"></svg>
+  <div class="rbar"><button type="button" id="rclose">✕ Chiudi</button><span class="t" id="rtip">Tieni il telefono in verticale accanto al bicchiere. Trascina la linea gialla 0 sul fondo interno del bicchiere.</span><button type="button" id="rcal">Calibra</button></div>
+  <div class="rnudge"><button type="button" id="rup" aria-label="Sposta in su di 1 mm">▲</button><button type="button" id="rdown" aria-label="Sposta in giù di 1 mm">▼</button></div>
+  <div class="calib" id="calib" hidden>
+    <p><b>Calibra lo schermo una volta sola.</b> Appoggia una carta di credito, il bancomat o la tessera sanitaria sul rettangolo e regola finché i bordi coincidono.</p>
+    <div class="card85" id="card85">carta 85,6 × 54 mm</div>
+    <input type="range" id="calr" min="2.5" max="12" step="0.01" aria-label="Dimensione della carta">
+    <div class="row"><button type="button" id="calm">−</button><button type="button" id="calp">+</button><button type="button" class="ok" id="calok">Fatto</button></div>
+  </div>
+</div>
+
+<script>
+/* ================= colori degli ingredienti ================= */
+const C={clear:"#e3ecef",gin:"#e3ecef",vodka:"#e3ecef",rumb:"#ece9df",rumamb:"#b8732a",rums:"#6e3610",whisky:"#c47a2c",cognac:"#a8541c",tequila:"#ece8cf",mezcal:"#e4dfc4",campari:"#c8102e",aperol:"#f2620f",vrosso:"#6b1a1a",vdry:"#e9e2b8",bolle:"#f1df98",soda:"#d8e9f2",tonica:"#dbe8ee",lime:"#c8dc6e",limone:"#f2e47a",sciroppo:"#f5efd8",cola:"#3b1d0e",ginger:"#d9b46a",gingerale:"#e6c98d",cranberry:"#b1123a",arancia:"#f6a12e",pompelmo:"#f2896a",ananas:"#f3d36a",pomodoro:"#b3261e",cocco:"#f4efe3",panna:"#faf5e8",caffeliq:"#2b160b",espresso:"#3a2112",triple:"#efe8d8",granatina:"#a8102a",pesca:"#f7c59f",fragola:"#e0475a",amaretto:"#9b4a1b",drambuie:"#c88d2c",menta:"#2fa35a",cacao:"#efe5d3",maraschino:"#eceade",chartv:"#7fb53a",chartg:"#e3cd47",violetta:"#8e7cc3",mure:"#4b1030",cassis:"#4a0d2b",vinob:"#ece2a0",vinor:"#5c0f1d",albume:"#f4f1e8",galliano:"#f0d23a",lillet:"#efd48a",nonino:"#b06a2a",fernet:"#2b1a12",sambuco:"#f1edc6",miele:"#e2a93a",orzata:"#efe6d2",curacao:"#e8a03a",cherry:"#7a0f22",benedictine:"#c9902e",calvados:"#c98a3c",apricot:"#e08a3a",grappa:"#eeeee6",pisco:"#eeeee6",cachaca:"#eeeee6",lagavulin:"#b97a35",acqua:"#dcecf3"};
+
+/* ================= drink =================
+   ing: [nome, ml, colore, flag]  flag "t" = colmare, "s" = spruzzo
+   g: bicchiere consigliato · ice: servito con ghiaccio · m: metodo */
+const M={build:"Costruito nel bicchiere",stir:"Mescolato",shake:"Shakerato",blend:"Frullato",muddle:"Pestato nel bicchiere"};
+const DIL={stir:.2,shake:.25,blend:.3};
+const D=[];
+const d=(id,n,src,cat,g,ice,m,ing,extra,garn,how,story,al=[])=>D.push({id,n,src,cat,g,ice,m,ing,extra,garn,how,story,al});
+
+d("negroni","Negroni","iba","Aperitivo","rocks",1,"build",[["Gin",30,"gin"],["Bitter Campari",30,"campari"],["Vermouth rosso",30,"vrosso"]],[],"Mezza fetta d'arancia",
+ "Versa gli ingredienti direttamente nel bicchiere pieno di ghiaccio e mescola delicatamente.",
+ "Firenze, intorno al 1919. Al Caffè Casoni di via Tornabuoni il conte Camillo Negroni chiede al barman Fosco Scarselli di rinforzare il suo Americano: al posto della soda arriva il gin, e per distinguerlo dagli altri la fetta d'arancia sostituisce il limone. Nasce così il drink che oggi si beve in tutto il mondo.");
+d("americano","Americano","iba","Aperitivo","rocks",1,"build",[["Bitter Campari",30,"campari"],["Vermouth rosso",30,"vrosso"],["Soda",20,"soda","s"]],[],"Mezza fetta d'arancia e scorza di limone",
+ "Versa Campari e vermouth nel bicchiere pieno di ghiaccio, aggiungi uno spruzzo di soda e mescola delicatamente.",
+ "Nasce a Milano nella seconda metà dell'Ottocento come «Milano-Torino»: il bitter di Gaspare Campari incontra il vermouth torinese. Il nome Americano arriva più tardi; si racconta per i turisti statunitensi che lo ordinavano negli anni del Proibizionismo. È il padre del Negroni.",["milano torino"]);
+d("spritz","Spritz","iba","Aperitivo","calice",1,"build",[["Aperol",60,"aperol"],["Prosecco",90,"bolle"],["Soda",20,"soda","s"]],[],"Fetta d'arancia",
+ "Versa nel calice pieno di ghiaccio prima l'Aperol, poi il Prosecco e uno spruzzo di soda. Mescola appena.",
+ "Nell'Ottocento i soldati austriaci di stanza nel Lombardo-Veneto trovavano il vino locale troppo forte e lo allungavano con acqua frizzante: «spritzen», in tedesco, vuol dire spruzzare. Il bitter arancione entra nella ricetta nel Novecento e negli anni 2000 lo Spritz diventa l'aperitivo italiano più famoso al mondo.",["aperol spritz"]);
+d("sbagliato","Negroni Sbagliato","classico","Aperitivo","rocks",1,"build",[["Bitter Campari",30,"campari"],["Vermouth rosso",30,"vrosso"],["Spumante brut",30,"bolle","t"]],[],"Mezza fetta d'arancia",
+ "Versa Campari e vermouth sul ghiaccio, colma con lo spumante e mescola con delicatezza.",
+ "Bar Basso, Milano, 1972. Durante un turno affollato Mirko Stocchetto prende la bottiglia sbagliata e al posto del gin versa lo spumante. Il cliente apprezza, l'errore diventa ricetta e il nome resta: Negroni «sbagliato».");
+d("mojito","Mojito","iba","Long drink","highball",1,"muddle",[["Succo di lime",20,"lime"],["Rum bianco cubano",45,"rumb"],["Soda",80,"soda","t"]],["6 rametti di menta","2 cucchiaini di zucchero di canna bianco"],"Rametto di menta e fetta di lime",
+ "Pesta delicatamente menta, zucchero e lime nel bicchiere. Aggiungi uno spruzzo di soda e riempi di ghiaccio. Versa il rum, colma con la soda e mescola dal basso verso l'alto.",
+ "Le radici sono cubane: già nel Cinquecento si parla del «Draque», un rimedio con acquavite, menta e lime legato al nome del corsaro Francis Drake. Il Mojito moderno diventa celebre alla Bodeguita del Medio dell'Avana, il locale associato a Ernest Hemingway, anche se la famosa frase sul suo mojito appesa al muro è con ogni probabilità apocrifa.");
+d("daiquiri","Daiquiri","iba","Short drink","coupe",0,"shake",[["Rum bianco cubano",60,"rumb"],["Succo di lime",20,"lime"]],["2 cucchiaini da bar di zucchero finissimo"],"Nessuna",
+ "Nello shaker mescola lime e zucchero finché si scioglie, aggiungi il rum e il ghiaccio, shakera e filtra nella coppetta fredda.",
+ "Intorno al 1900, vicino al villaggio minerario di Daiquirí, a Cuba, l'ingegnere americano Jennings Cox mescola rum, lime e zucchero per i suoi ospiti. Negli anni Trenta Constantino Ribalaigua, al Floridita dell'Avana, lo trasforma in un'arte e ne crea la versione frozen amata da Hemingway.");
+d("margarita","Margarita","iba","Short drink","coupe",0,"shake",[["Tequila 100% agave",50,"tequila"],["Triple sec",20,"triple"],["Succo di lime",15,"lime"]],[],"Mezza crosta di sale sul bordo (facoltativa)",
+ "Shakera tutti gli ingredienti con il ghiaccio e filtra nel bicchiere freddo, se vuoi con mezzo bordo di sale.",
+ "Le origini sono contese tra Messico e California, negli anni Trenta e Quaranta: ogni versione ha una «Margarita» diversa a cui sarebbe stata dedicata. Un indizio linguistico: esisteva già un drink chiamato «Daisy», con distillato, agrumi e liquore d'arancia, e daisy in spagnolo si dice proprio margarita.");
+d("martini","Dry Martini","iba","Short drink","martini",0,"stir",[["Gin",60,"gin"],["Vermouth dry",10,"vdry"]],[],"Scorza di limone spremuta sopra, oppure olive verdi",
+ "Mescola gin e vermouth nel mixing glass con il ghiaccio e filtra nella coppa martini ghiacciata.",
+ "Discende dal Martinez dell'Ottocento, più dolce e ricco di vermouth. Nel Novecento diventa sempre più secco, fino alle battute di chi si limitava a «guardare» la bottiglia di vermouth. James Bond lo vuole «agitato, non mescolato»; i barman, per un Martini limpido, preferiscono mescolarlo.",["martini"]);
+d("manhattan","Manhattan","iba","Short drink","martini",0,"stir",[["Rye whiskey",50,"whisky"],["Vermouth rosso",20,"vrosso"]],["1 goccia di Angostura"],"Ciliegia da cocktail",
+ "Mescola tutto nel mixing glass con il ghiaccio e filtra nella coppa fredda.",
+ "New York, anni Settanta o Ottanta dell'Ottocento. La versione più nota lo fa nascere al Manhattan Club per una festa di Jennie Jerome, madre di Winston Churchill, ma all'epoca lei si trovava in Inghilterra: la storia è affascinante quanto improbabile. Di sicuro è uno dei primi cocktail con il vermouth.");
+d("oldfashioned","Old Fashioned","iba","Short drink","rocks",1,"build",[["Bourbon o rye whiskey",45,"whisky"]],["1 zolletta di zucchero","Qualche goccia di Angostura","Qualche goccia d'acqua"],"Fetta o scorza d'arancia e ciliegia",
+ "Metti la zolletta nel bicchiere, bagnala con l'Angostura e poche gocce d'acqua e pestala finché si scioglie. Riempi di ghiaccio, aggiungi il whiskey e mescola.",
+ "Nel 1806 un giornale americano definiva il «cocktail» come distillato, zucchero, acqua e bitter. Quando a fine Ottocento arrivarono drink più elaborati, chi voleva la ricetta originale chiedeva un whiskey cocktail «old fashioned», alla vecchia maniera. Il Pendennis Club di Louisville ne rivendica la paternità.");
+d("moscowmule","Moscow Mule","iba","Long drink","highball",1,"build",[["Vodka",45,"vodka"],["Succo di lime",10,"lime"],["Ginger beer",120,"ginger","t"]],[],"Fetta di lime",
+ "Nella tazza di rame o nel bicchiere con ghiaccio versa vodka e ginger beer, aggiungi il lime e mescola.",
+ "Los Angeles, 1941. John Martin aveva i diritti di una vodka che gli americani non conoscevano, Jack Morgan del Cock 'n' Bull una scorta di ginger beer che non vendeva. Mescolarle fu un'idea commerciale riuscitissima, servita nella tazza di rame che Martin fotografava in ogni bar che visitava.",["mule"]);
+d("cosmopolitan","Cosmopolitan","iba","Short drink","martini",0,"shake",[["Vodka citron",40,"vodka"],["Cointreau",15,"triple"],["Succo di lime",15,"lime"],["Succo di mirtillo rosso",30,"cranberry"]],[],"Twist di limone",
+ "Shakera tutti gli ingredienti con il ghiaccio e filtra nella coppa grande.",
+ "Nasce negli anni Ottanta: lo rivendicano Cheryl Cook a Miami e Toby Cecchini, che nel 1988 al ristorante Odeon di New York ne fissò la ricetta con vodka al limone e Cointreau. Negli anni Novanta «Sex and the City» lo trasforma in un'icona.",["cosmo"]);
+d("pinacolada","Piña Colada","iba","Long drink","highball",0,"blend",[["Rum bianco",50,"rumb"],["Crema di cocco",30,"cocco"],["Succo d'ananas fresco",50,"ananas"]],[],"Fetta d'ananas e ciliegia",
+ "Frulla tutto con il ghiaccio e versa in un bicchiere grande, con la cannuccia.",
+ "San Juan, Portorico, 1954: al Caribe Hilton il barman Ramón «Monchito» Marrero lavora tre mesi a un drink che riassuma l'isola. Il ristorante Barrachina rivendica una versione del 1963. Dal 1978 è la bevanda nazionale di Portorico.",["pina colada"]);
+d("bloodymary","Bloody Mary","iba","Long drink","highball",1,"stir",[["Vodka",45,"vodka"],["Succo di pomodoro",90,"pomodoro"],["Succo di limone",15,"limone"]],["2 gocce di salsa Worcestershire","Tabasco, sale al sedano e pepe a piacere"],"Gambo di sedano e spicchio di limone",
+ "Mescola delicatamente tutto nel mixing glass con il ghiaccio e versa nel bicchiere.",
+ "Parigi, anni Venti: al Harry's New York Bar Fernand Petiot mescola vodka e succo di pomodoro, una novità arrivata dall'America. Trasferitosi al St. Regis di New York, lo arricchisce di spezie. Il nome rimanda forse a Maria I d'Inghilterra, «Maria la sanguinaria».");
+d("caipirinha","Caipirinha","iba","Short drink","rocks",1,"muddle",[["Cachaça",60,"cachaca"]],["1 lime tagliato a spicchi","4 cucchiaini di zucchero di canna bianco"],"Nessuna",
+ "Pesta delicatamente lime e zucchero nel bicchiere, riempi di ghiaccio tritato, versa la cachaça e mescola.",
+ "Viene dalle campagne di San Paolo, in Brasile: il nome è il diminutivo di «caipira», contadino. Si racconta che all'inizio del Novecento una versione con aglio e miele si usasse come rimedio contro l'influenza; poi l'aglio sparì e restarono lime, zucchero e cachaça.");
+d("maitai","Mai Tai","iba","Tiki","rocks",1,"shake",[["Rum ambrato giamaicano",30,"rumamb"],["Rum della Martinica",30,"rums"],["Curaçao all'arancia",15,"curacao"],["Sciroppo d'orzata",15,"orzata"],["Succo di lime",30,"lime"],["Sciroppo di zucchero",7.5,"sciroppo"]],[],"Spicchio d'ananas, menta e scorza di lime",
+ "Shakera tutto con il ghiaccio e versa nel bicchiere basso doppio.",
+ "Oakland, 1944. Victor «Trader Vic» Bergeron prepara un drink per due amici di Tahiti, che al primo sorso esclamano «Maita'i roa ae!»: il migliore, fuori dal mondo. Donn Beach, il rivale di sempre, sostenne di averlo inventato prima: la disputa non si è mai chiusa.",["mai-tai"]);
+d("paloma","Paloma","iba","Long drink","highball",1,"build",[["Tequila 100% agave",50,"tequila"],["Succo di lime",5,"lime"],["Soda al pompelmo rosa",100,"pompelmo","t"]],["Un pizzico di sale"],"Fetta di lime",
+ "Versa la tequila nel bicchiere, spremi il lime, aggiungi ghiaccio e sale e colma con la soda al pompelmo.",
+ "In Messico è il drink a base di tequila più bevuto, più della Margarita. L'origine è incerta: la sua fortuna cresce negli anni Cinquanta insieme alle bibite al pompelmo. Paloma vuol dire colomba.");
+d("whiskeysour","Whiskey Sour","iba","Short drink","rocks",1,"shake",[["Bourbon",45,"whisky"],["Succo di limone",25,"limone"],["Sciroppo di zucchero",20,"sciroppo"],["Albume",20,"albume"]],[],"Mezza fetta d'arancia e ciliegia",
+ "Shakera tutto con il ghiaccio e filtra nel bicchiere basso con ghiaccio (o in coppa, senza).",
+ "I sour nascono dai marinai, che portavano agrumi a bordo contro lo scorbuto e li mescolavano con il rum o il whisky. La ricetta del Whiskey Sour compare stampata nel 1862 nel manuale di Jerry Thomas, il primo grande barman americano.",["sour"]);
+d("collins","Tom Collins","iba","Long drink","highball",1,"build",[["Gin",45,"gin"],["Succo di limone",30,"limone"],["Sciroppo di zucchero",15,"sciroppo"],["Soda",60,"soda","t"]],[],"Fetta di limone e ciliegia",
+ "Versa tutto nel bicchiere pieno di ghiaccio e mescola delicatamente.",
+ "Nell'Ottocento John Collins, capo cameriere al Limmer's Hotel di Londra, era famoso per il suo punch al gin. Nel 1874 a New York girava uno scherzo: «Hai visto Tom Collins? Va in giro a parlare male di te». I baristi ne approfittarono creando un drink con quel nome. Con l'Old Tom gin è un Tom Collins, con il London dry un John Collins.",["john collins"]);
+d("bellini","Bellini","iba","Con le bollicine","flute",0,"stir",[["Purea di pesca bianca",50,"pesca"],["Prosecco",100,"bolle","t"]],[],"Nessuna",
+ "Versa la purea nel mixing glass con il ghiaccio, aggiungi il Prosecco, mescola con delicatezza e versa nella flûte fredda.",
+ "Harry's Bar, Venezia, 1948. Giuseppe Cipriani unisce Prosecco e pesche bianche e lo dedica a Giovanni Bellini: il colore rosato gli ricordava una tunica in un dipinto del pittore veneziano.");
+d("rossini","Rossini","classico","Con le bollicine","flute",0,"build",[["Purea di fragole",50,"fragola"],["Prosecco",100,"bolle","t"]],[],"Una fragola",
+ "Versa la purea fredda nella flûte e colma lentamente con il Prosecco, mescolando appena.",
+ "È il fratello del Bellini: stessa idea veneziana, ma con le fragole al posto delle pesche. È dedicato al compositore Gioachino Rossini, noto anche per la passione per la buona tavola.");
+d("mimosa","Mimosa","iba","Con le bollicine","flute",0,"build",[["Succo d'arancia fresco",75,"arancia"],["Prosecco",75,"bolle","t"]],[],"Twist d'arancia (facoltativo)",
+ "Versa il succo d'arancia nella flûte e aggiungi lentamente lo spumante. Mescola appena.",
+ "Parigi, metà anni Venti: Frank Meier, barman del Ritz, lo battezza come il fiore giallo. Pochi anni prima a Londra era nato il Buck's Fizz, quasi identico: gli inglesi lo chiamano ancora così.",["bucks fizz"]);
+d("espressomartini","Espresso Martini","iba","Short drink","martini",0,"shake",[["Vodka",50,"vodka"],["Liquore al caffè",30,"caffeliq"],["Sciroppo di zucchero",10,"sciroppo"],["Espresso ristretto",30,"espresso"]],[],"Tre chicchi di caffè (facoltativi)",
+ "Shakera energicamente tutto con il ghiaccio e filtra nella coppa fredda: deve formarsi una schiuma compatta.",
+ "Londra, anni Ottanta. Una cliente chiede a Dick Bradsell un drink che la svegli e la tenga su insieme. Lui mette nello shaker vodka, liquore al caffè e un espresso appena fatto. All'inizio si chiamava Vodka Espresso.");
+d("boulevardier","Boulevardier","iba","Short drink","coupe",0,"stir",[["Bourbon o rye",45,"whisky"],["Bitter Campari",30,"campari"],["Vermouth rosso",30,"vrosso"]],[],"Scorza d'arancia",
+ "Mescola nel mixing glass con il ghiaccio e filtra nella coppetta fredda.",
+ "Il cugino americano del Negroni, con il whiskey al posto del gin. Appare nel 1927 nel libro di Harry MacElhone, del Harry's New York Bar di Parigi, legato a Erskine Gwynne, scrittore americano che dirigeva una rivista chiamata proprio «Boulevardier».");
+d("french75","French 75","iba","Con le bollicine","flute",0,"shake",[["Gin",30,"gin"],["Succo di limone",15,"limone"],["Sciroppo di zucchero",15,"sciroppo"],["Champagne",60,"bolle","t"]],[],"Nessuna",
+ "Shakera gin, limone e sciroppo con il ghiaccio, filtra nella flûte e colma con lo Champagne.",
+ "Parigi, durante la Prima guerra mondiale. Il nome viene dal cannone francese da 75 mm: si diceva che il drink colpisse con la stessa forza. La ricetta si diffonde dal Harry's New York Bar.");
+d("sidecar","Sidecar","iba","Short drink","coupe",0,"shake",[["Cognac",50,"cognac"],["Triple sec",20,"triple"],["Succo di limone",20,"limone"]],[],"Nessuna",
+ "Shakera tutto con il ghiaccio e filtra nella coppetta fredda.",
+ "Nasce alla fine della Prima guerra mondiale, tra Parigi e Londra. La storia più raccontata è quella di un capitano che arrivava al bar sul sidecar di una motocicletta guidata dal suo autista.");
+d("whitelady","White Lady","iba","Short drink","coupe",0,"shake",[["Gin",40,"gin"],["Triple sec",30,"triple"],["Succo di limone",20,"limone"]],[],"Nessuna",
+ "Shakera tutto con il ghiaccio e filtra nella coppetta fredda.",
+ "Harry MacElhone lo crea a Londra nel 1919 con la crema di menta; dieci anni dopo, nel suo bar di Parigi, sostituisce la menta con il gin e fissa la ricetta che conosciamo.");
+d("cubalibre","Cuba Libre","iba","Long drink","highball",1,"build",[["Rum bianco",50,"rumb"],["Succo di lime",10,"lime"],["Coca-Cola",120,"cola","t"]],[],"Spicchio di lime",
+ "Costruisci tutto nel bicchiere pieno di ghiaccio.",
+ "L'Avana, intorno al 1900, dopo la guerra di indipendenza dalla Spagna. I soldati americani mescolano il rum locale con la Coca-Cola appena arrivata e brindano al grido di «¡Por Cuba libre!».",["rum e cola"]);
+d("longisland","Long Island Iced Tea","iba","Long drink","highball",1,"build",[["Vodka",15,"vodka"],["Tequila",15,"tequila"],["Rum bianco",15,"rumb"],["Gin",15,"gin"],["Cointreau",15,"triple"],["Succo di limone",30,"limone"],["Sciroppo di zucchero",20,"sciroppo"],["Cola",40,"cola","t"]],[],"Fetta di limone (facoltativa)",
+ "Versa tutto nel bicchiere pieno di ghiaccio, colma con la cola e mescola.",
+ "Robert «Rosebud» Butt racconta di averlo creato nel 1972 all'Oak Beach Inn di Long Island, per una gara sui nuovi liquori. Di tè non ce n'è: il nome viene dal colore, che lo fa sembrare un innocuo tè freddo.",["liit"]);
+d("sunrise","Tequila Sunrise","iba","Long drink","highball",1,"build",[["Tequila",45,"tequila"],["Succo d'arancia fresco",90,"arancia"],["Sciroppo di granatina",15,"granatina"]],[],"Mezza fetta d'arancia",
+ "Versa tequila e arancia nel bicchiere con il ghiaccio, poi la granatina lungo il bordo: scende sul fondo e crea l'alba. Non mescolare.",
+ "La versione moderna nasce negli anni Settanta al Trident di Sausalito, in California. Diventa famosa quando i Rolling Stones la bevono durante il tour americano del 1972; l'anno dopo gli Eagles le dedicano una canzone.");
+d("sexbeach","Sex on the Beach","iba","Long drink","highball",1,"build",[["Vodka",40,"vodka"],["Liquore alla pesca",20,"pesca"],["Succo d'arancia",40,"arancia"],["Succo di mirtillo rosso",40,"cranberry"]],[],"Mezza fetta d'arancia",
+ "Costruisci tutto nel bicchiere pieno di ghiaccio.",
+ "Anni Ottanta, Florida. La versione più raccontata lo lega a un concorso per promuovere il nuovo liquore alla pesca, vinto da un barman che gli diede il nome più provocatorio possibile.");
+d("julep","Mint Julep","iba","Long drink","highball",1,"muddle",[["Bourbon",60,"whisky"]],["4 rametti di menta","1 cucchiaino di zucchero a velo","2 cucchiaini d'acqua"],"Rametto di menta",
+ "Pesta delicatamente menta, zucchero e acqua. Riempi di ghiaccio tritato, aggiungi il bourbon e mescola finché il bicchiere si appanna.",
+ "È la bevanda del Sud degli Stati Uniti tra Settecento e Ottocento e, dal 1938, quella ufficiale del Kentucky Derby: in quei giorni se ne servono oltre centomila. La tradizione vuole la coppa di metallo ghiacciata.");
+d("aviation","Aviation","iba","Short drink","martini",0,"shake",[["Gin",45,"gin"],["Maraschino Luxardo",15,"maraschino"],["Succo di limone",15,"limone"]],["1 cucchiaino da bar di crème de violette"],"Ciliegia (facoltativa)",
+ "Shakera tutto con ghiaccio tritato e filtra nella coppa fredda.",
+ "Hugo Ensslin, barman dell'Hotel Wallick di New York, ne pubblica la ricetta nel 1916. La violetta gli dà un colore azzurro pallido come il cielo dei primi aviatori. Quando il liquore di violetta sparì dal mercato il drink fu dimenticato; è tornato con la sua ricomparsa, nel 2007.");
+d("blackrussian","Black Russian","iba","Short drink","rocks",1,"build",[["Vodka",50,"vodka"],["Liquore al caffè",20,"caffeliq"]],[],"Nessuna",
+ "Versa tutto nel bicchiere pieno di ghiaccio e mescola.",
+ "Bruxelles, 1949. Al Metropole Gustave Tops lo crea per Perle Mesta, ambasciatrice americana in Lussemburgo: russo per la vodka, nero per il caffè, in piena Guerra fredda.");
+d("whiterussian","White Russian","classico","Short drink","rocks",1,"build",[["Vodka",50,"vodka"],["Liquore al caffè",20,"caffeliq"],["Panna fresca",30,"panna"]],[],"Nessuna",
+ "Versa vodka e liquore sul ghiaccio, poi adagia la panna in superficie e mescola lentamente.",
+ "È il Black Russian con la panna, comparso negli anni Sessanta. Lo rende immortale «Il grande Lebowski» (1998): il Drugo ne beve uno dopo l'altro e lo chiama «Caucasian».");
+d("bramble","Bramble","iba","Short drink","rocks",1,"shake",[["Gin",50,"gin"],["Succo di limone",25,"limone"],["Sciroppo di zucchero",12.5,"sciroppo"],["Crème de mûre",15,"mure"]],[],"Fetta di limone e more",
+ "Shakera gin, limone e sciroppo, filtra sul ghiaccio tritato e versa sopra la crème de mûre a filo.",
+ "Londra, 1984. Dick Bradsell, al Fred's Club, cerca un drink britannico e pensa ai pomeriggi d'infanzia sull'Isola di Wight a raccogliere more dai rovi: bramble, in inglese.");
+d("grasshopper","Grasshopper","iba","Dopo cena","coupe",0,"shake",[["Crème de cacao bianca",20,"cacao"],["Crème de menthe verde",20,"menta"],["Panna fresca",20,"panna"]],[],"Foglia di menta (facoltativa)",
+ "Shakera brevemente tutto con il ghiaccio e filtra nella coppetta fredda.",
+ "Lo attribuiscono a Philibert Guichet, proprietario del Tujague's di New Orleans, intorno al 1918. Negli anni Cinquanta e Sessanta, con il suo verde brillante, diventa il dopocena di moda in America.");
+d("piscosour","Pisco Sour","iba","Short drink","coupe",0,"shake",[["Pisco",60,"pisco"],["Succo di limone",30,"limone"],["Sciroppo di zucchero",20,"sciroppo"],["Albume",20,"albume"]],[],"Qualche goccia di bitter sulla schiuma",
+ "Shakera energicamente tutto con il ghiaccio e filtra nel calice freddo; completa con gocce di bitter sulla schiuma.",
+ "Lima, anni Venti: Victor Morris, americano trasferito in Perù, lo serve nel suo Morris' Bar. Perù e Cile si contendono il pisco e il drink; in Perù il primo sabato di febbraio è la giornata nazionale del Pisco Sour.");
+d("vesper","Vesper","iba","Short drink","martini",0,"shake",[["Gin",45,"gin"],["Vodka",15,"vodka"],["Lillet Blanc",7.5,"lillet"]],[],"Scorza di limone",
+ "Shakera tutto con il ghiaccio e filtra nella coppa fredda.",
+ "Nasce sulla carta: in «Casino Royale» (1953) Ian Fleming fa ordinare a James Bond questa variante del Martini, che l'agente dedica a Vesper Lynd. Il Kina Lillet del romanzo non esiste più: oggi si usa il Lillet Blanc.");
+d("kir","Kir Royal","iba","Con le bollicine","flute",0,"build",[["Crème de cassis",10,"cassis"],["Champagne",90,"bolle","t"]],[],"Nessuna",
+ "Versa la crème de cassis nella flûte e colma con lo Champagne. Con il vino bianco secco è un Kir.",
+ "Félix Kir, canonico e sindaco di Digione dopo la Seconda guerra mondiale, offriva agli ospiti vino bianco aligoté con liquore di ribes nero per promuovere i prodotti della Borgogna. Con lo Champagne diventa Royal.",["kir"]);
+d("ginfizz","Gin Fizz","iba","Long drink","highball",0,"shake",[["Gin",45,"gin"],["Succo di limone",30,"limone"],["Sciroppo di zucchero",10,"sciroppo"],["Soda",30,"soda","s"]],[],"Fetta di limone",
+ "Shakera gin, limone e sciroppo con il ghiaccio, versa nel tumbler alto senza ghiaccio e completa con uno spruzzo di soda.",
+ "I «fizz» spopolano nell'America di fine Ottocento: Jerry Thomas li pubblica nel 1876. La versione più spettacolare è il Ramos Gin Fizz di New Orleans, con panna e albume, che richiedeva minuti di shakeraggio.");
+d("paperplane","Paper Plane","iba","Short drink","coupe",0,"shake",[["Bourbon",30,"whisky"],["Amaro Nonino",30,"nonino"],["Aperol",30,"aperol"],["Succo di limone",30,"limone"]],[],"Nessuna",
+ "Shakera tutto con il ghiaccio e filtra nella coppetta fredda.",
+ "Sam Ross lo crea nel 2008 per il Violet Hour di Chicago, in parti uguali come il Last Word. Il nome viene dalla canzone «Paper Planes» di M.I.A., che ascoltava in loop in quei giorni. Dentro, due prodotti italiani.");
+d("penicillin","Penicillin","iba","Short drink","rocks",1,"shake",[["Blended Scotch",60,"whisky"],["Succo di limone",22.5,"limone"],["Sciroppo di miele",22.5,"miele"],["Islay whisky (Lagavulin)",7.5,"lagavulin"]],["2–3 fette di zenzero fresco"],"Zenzero candito",
+ "Pesta lo zenzero nello shaker, aggiungi tutto tranne l'Islay, shakera con il ghiaccio e filtra sul ghiaccio. Versa l'Islay a filo sopra.",
+ "New York, 2005. Sam Ross, al Milk & Honey, unisce miele, limone e zenzero, i rimedi della nonna contro il raffreddore, e lo chiama come il più famoso dei medicinali. Il whisky torbato in superficie arriva prima al naso che al palato.");
+d("lastword","Last Word","iba","Short drink","coupe",0,"shake",[["Gin",22.5,"gin"],["Chartreuse verde",22.5,"chartv"],["Maraschino Luxardo",22.5,"maraschino"],["Succo di lime",22.5,"lime"]],[],"Nessuna",
+ "Shakera tutto con il ghiaccio e filtra nella coppetta fredda.",
+ "Nasce al Detroit Athletic Club negli anni del Proibizionismo e viene dimenticato per decenni. Nel 2004 Murray Stenson lo riscopre a Seattle in un vecchio libro: da lì torna nei bar di tutto il mondo.");
+d("cloverclub","Clover Club","iba","Short drink","coupe",0,"shake",[["Gin",45,"gin"],["Sciroppo di lampone",15,"fragola"],["Succo di limone",15,"limone"]],["Qualche goccia di albume"],"Lamponi freschi",
+ "Shakera energicamente tutto con il ghiaccio e filtra nella coppetta fredda.",
+ "Filadelfia, fine Ottocento. Il Clover Club era un circolo di avvocati, giornalisti e uomini d'affari che si riuniva al Bellevue-Stratford Hotel. Il drink prende il nome da loro e sopravvive al Proibizionismo che chiuse il club.");
+d("tommys","Tommy's Margarita","iba","Short drink","rocks",1,"shake",[["Tequila reposado",60,"tequila"],["Succo di lime",30,"lime"],["Sciroppo d'agave",30,"miele"]],[],"Fetta di lime",
+ "Shakera tutto con il ghiaccio e filtra nel bicchiere basso con ghiaccio.",
+ "San Francisco, anni Novanta. Julio Bermejo, nel ristorante di famiglia Tommy's, toglie il liquore d'arancia e usa lo sciroppo d'agave: tutto viene dalla stessa pianta della tequila.");
+d("hankypanky","Hanky Panky","iba","Short drink","martini",0,"stir",[["London dry gin",45,"gin"],["Vermouth rosso",45,"vrosso"],["Fernet-Branca",7.5,"fernet"]],[],"Scorza d'arancia",
+ "Mescola tutto nel mixing glass con il ghiaccio e filtra nella coppa fredda.",
+ "Ada «Coley» Coleman, prima donna capo barman dell'American Bar del Savoy di Londra, lo crea all'inizio del Novecento per l'attore Charles Hawtrey. Al primo sorso lui esclama: «Questo è il vero hanky-panky!», il vero imbroglio.");
+d("alexander","Alexander","iba","Dopo cena","coupe",0,"shake",[["Cognac",30,"cognac"],["Crème de cacao",30,"cacao"],["Panna fresca",30,"panna"]],[],"Noce moscata grattugiata",
+ "Shakera tutto con il ghiaccio e filtra nella coppetta fredda. Grattugia sopra la noce moscata.",
+ "Compare a New York all'inizio del Novecento, inizialmente con il gin. La versione con il cognac, il Brandy Alexander, diventa il dopocena più chic degli anni Venti.",["brandy alexander"]);
+d("rustynail","Rusty Nail","iba","Dopo cena","rocks",1,"build",[["Scotch whisky",45,"whisky"],["Drambuie",25,"drambuie"]],[],"Scorza di limone",
+ "Versa tutto nel bicchiere pieno di ghiaccio e mescola.",
+ "Scotch e Drambuie, un liquore scozzese al whisky con miele ed erbe. Il nome, «chiodo arrugginito», viene dal colore ambrato; diventa celebre tra anni Cinquanta e Sessanta grazie al Rat Pack di Frank Sinatra.");
+d("singaporesling","Singapore Sling","iba","Long drink","highball",0,"shake",[["Gin",30,"gin"],["Cherry liqueur",15,"cherry"],["Cointreau",7.5,"triple"],["Bénédictine",7.5,"benedictine"],["Succo d'ananas",120,"ananas"],["Succo di lime",15,"lime"],["Granatina",10,"granatina"]],["1 goccia di Angostura"],"Ananas e ciliegia",
+ "Shakera tutto con il ghiaccio e filtra nel bicchiere alto.",
+ "Singapore, intorno al 1915. Al Long Bar del Raffles Hotel il barman Ngiam Tong Boon crea un drink rosa che sembra un innocuo succo di frutta: le signore, che in pubblico non potevano bere alcolici, potevano ordinarlo senza scandalo.");
+d("horsesneck","Horse's Neck","iba","Long drink","highball",1,"build",[["Cognac",40,"cognac"],["Ginger ale",120,"gingerale","t"]],["1 goccia di Angostura (facoltativa)"],"Lunga spirale di scorza di limone",
+ "Versa cognac e ginger ale nel bicchiere con ghiaccio, aggiungi la spirale di limone e mescola.",
+ "A fine Ottocento era una bibita analcolica: ginger ale e una lunghissima scorza di limone che pende dal bicchiere come il collo di un cavallo. Con il cognac diventa uno dei drink preferiti della Royal Navy.");
+d("champagnecocktail","Champagne Cocktail","iba","Con le bollicine","flute",0,"build",[["Cognac",10,"cognac"],["Champagne",90,"bolle","t"]],["1 zolletta di zucchero","2 gocce di Angostura","Qualche goccia di Grand Marnier"],"Scorza d'arancia e ciliegia",
+ "Metti la zolletta bagnata di Angostura nella flûte, aggiungi il cognac e versa lentamente lo Champagne freddo.",
+ "È uno dei cocktail più antichi: compare già nel manuale di Jerry Thomas del 1862. In «Casablanca» Rick e Ilsa brindano proprio con un Champagne Cocktail.");
+d("darkstormy","Dark 'n' Stormy","iba","Long drink","highball",1,"build",[["Ginger beer",100,"ginger"],["Rum scuro Gosling's",60,"rums"]],[],"Spicchio di lime",
+ "Versa la ginger beer nel bicchiere pieno di ghiaccio e adagia sopra il rum, che resta galleggiante.",
+ "Bermuda, dopo la Prima guerra mondiale: il rum scuro della famiglia Gosling incontra la ginger beer prodotta per la Royal Navy. Il rum che galleggia ricorda una nuvola di temporale. Gosling's ne ha registrato il nome.",["dark and stormy"]);
+d("frenchconnection","French Connection","iba","Dopo cena","rocks",1,"build",[["Cognac",35,"cognac"],["Amaretto",35,"amaretto"]],[],"Nessuna",
+ "Versa tutto nel bicchiere pieno di ghiaccio e mescola.",
+ "Anni Settanta: prende il nome dal film «Il braccio violento della legge» (The French Connection, 1971). Cognac francese e amaretto italiano in parti uguali.");
+d("godfather","Godfather","classico","Dopo cena","rocks",1,"build",[["Scotch whisky",35,"whisky"],["Amaretto",35,"amaretto"]],[],"Nessuna",
+ "Versa tutto nel bicchiere pieno di ghiaccio e mescola.",
+ "Nasce negli anni Settanta sull'onda del successo de «Il Padrino» (1972): uno scotch ammorbidito dall'amaretto italiano. Con la vodka al posto dello scotch diventa Godmother.",["padrino"]);
+d("martinez","Martinez","iba","Short drink","martini",0,"stir",[["London dry gin",45,"gin"],["Vermouth rosso",45,"vrosso"]],["1 cucchiaino da bar di maraschino","2 gocce di bitter all'arancia"],"Scorza di limone",
+ "Mescola tutto nel mixing glass con il ghiaccio e filtra nella coppa fredda.",
+ "È l'antenato del Martini. Una leggenda lo lega a Jerry Thomas e a un viaggiatore di San Francisco diretto nella cittadina di Martinez; un'altra a un barman proprio di Martinez. La prima ricetta stampata è del 1887.");
+d("hemingway","Hemingway Special","iba","Short drink","coupe",0,"shake",[["Rum bianco",60,"rumb"],["Succo di pompelmo",40,"pompelmo"],["Maraschino Luxardo",15,"maraschino"],["Succo di lime",15,"lime"]],[],"Nessuna",
+ "Shakera tutto con il ghiaccio e filtra nella coppa grande.",
+ "L'Avana, anni Trenta. Al Floridita, Constantino Ribalaigua adatta il Daiquiri ai gusti di Ernest Hemingway: doppio rum, niente zucchero, pompelmo e maraschino. Lo scrittore lo chiamava «Papa Doble».",["papa doble"]);
+d("vento","VE.N.TO","iba","Short drink","rocks",1,"shake",[["Grappa bianca morbida",45,"grappa"],["Succo di limone",22.5,"limone"],["Miele diluito",15,"miele"],["Cordiale di camomilla",15,"sambuco"],["Albume",10,"albume"]],[],"Scorza di limone e uva bianca",
+ "Shakera energicamente con il ghiaccio e filtra nel tumbler basso con ghiaccio.",
+ "Il nome è il Veneto scritto a pezzi. Nato da un'idea dei barman veneti per valorizzare la grappa, nel 2020 è entrato nella lista ufficiale IBA: uno dei pochi drink italiani recenti a riuscirci.",["veneto"]);
+d("gintonic","Gin Tonic","classico","Long drink","highball",1,"build",[["Gin",50,"gin"],["Acqua tonica",150,"tonica","t"]],[],"Scorza di limone o lime",
+ "Riempi il bicchiere di ghiaccio, versa il gin e aggiungi la tonica lungo un cucchiaio per non perdere le bollicine.",
+ "India britannica, Ottocento. Agli ufficiali si dava il chinino contro la malaria, amarissimo: lo scioglievano in acqua con zucchero, lime e una razione di gin. Nel 1870 Schweppes mette in commercio la sua acqua tonica.",["gin and tonic","gin tonic"]);
+d("garibaldi","Garibaldi","classico","Aperitivo","highball",1,"build",[["Bitter Campari",40,"campari"],["Succo d'arancia",120,"arancia","t"]],[],"Spicchio d'arancia",
+ "Versa il Campari sul ghiaccio e colma con succo d'arancia appena spremuto, meglio se montato per renderlo spumoso.",
+ "Un omaggio all'Unità d'Italia e a Giuseppe Garibaldi: il bitter di Milano incontra le arance di Sicilia, Nord e Sud nello stesso bicchiere.",["campari orange"]);
+d("hugo","Hugo","classico","Aperitivo","calice",1,"build",[["Sciroppo di fiori di sambuco",20,"sambuco"],["Prosecco",120,"bolle"],["Soda",30,"soda","s"]],["6–8 foglie di menta","Fetta di lime"],"Menta e fetta di lime",
+ "Nel calice metti la menta e il lime, versa lo sciroppo e il ghiaccio, poi il Prosecco e uno spruzzo di soda. Mescola appena.",
+ "Naturno, Alto Adige, 2005. Il barman Roland Gruber cerca un'alternativa più leggera allo Spritz; all'inizio usa lo sciroppo di melissa, poi passa ai fiori di sambuco. In pochi anni conquista le Alpi e la Germania.");
+d("pornstar","Porn Star Martini","classico","Short drink","coupe",0,"shake",[["Vodka alla vaniglia",40,"vodka"],["Liquore al frutto della passione",15,"apricot"],["Succo di lime",15,"lime"],["Sciroppo alla vaniglia",15,"sciroppo"]],["Mezzo frutto della passione","60 ml di Prosecco servito a parte"],"Mezzo frutto della passione",
+ "Shakera tutto con il ghiaccio e filtra nella coppetta fredda. Servi il Prosecco a parte in un bicchierino.",
+ "Londra, 2002. Douglas Ankrah, al Townhouse, crea un drink dal nome volutamente provocatorio. Nel Regno Unito è stato a lungo il cocktail più ordinato.",["pornstar"]);
+d("kirbianco","Kir","iba","Aperitivo","calice",0,"build",[["Crème de cassis",10,"cassis"],["Vino bianco secco",90,"vinob","t"]],[],"Nessuna",
+ "Versa la crème de cassis nel calice e colma con il vino bianco freddo.",
+ "La versione originale del canonico Félix Kir, sindaco di Digione: vino bianco aligoté e liquore di ribes nero, i due vanti della Borgogna.",["vino cassis"]);
+
+/* ================= bicchieri =================
+   profilo: raggio come frazione del raggio al bordo, in funzione dell'altezza t (0 fondo, 1 bordo) */
+const G={
+ highball:{n:"Highball",D:62,H:125,stem:0,base:8,p:t=>1},
+ rocks:{n:"Old fashioned",D:78,H:70,stem:0,base:12,p:t=>1},
+ martini:{n:"Coppa Martini",D:105,H:62,stem:70,base:2,p:t=>.04+.96*t},
+ coupe:{n:"Coupette",D:95,H:40,stem:80,base:2,p:null},
+ flute:{n:"Flûte",D:52,H:150,stem:65,base:2,p:t=>.3+.7*Math.sqrt(t)},
+ calice:{n:"Calice",D:70,H:100,stem:75,base:2,p:t=>{const zc=.42,Rm=1.25;return t<zc?Rm*Math.sqrt(Math.max(0,1-Math.pow((zc-t)/zc,2))):Rm-(Rm-1)*Math.pow((t-zc)/(1-zc),1.6)}}
+};
+function radius(gk,dims,z){const g=G[gk],R=dims.D/2,H=dims.H;const t=Math.min(1,Math.max(0,z/H));
+  if(gk==="coupe"){const Rs=(R*R+H*H)/(2*H);return Math.sqrt(Math.max(0,Rs*Rs-(Rs-z)*(Rs-z)))}
+  return R*g.p(t)}
+function volTable(gk,dims){const N=300,H=dims.H,dz=H/N,v=[0];let acc=0;
+  for(let i=1;i<=N;i++){const r=radius(gk,dims,(i-.5)*dz);acc+=Math.PI*r*r*dz/1000;v.push(acc)}return{v,dz,H}}
+function heightFor(tab,ml){const v=tab.v;if(ml<=0)return 0;if(ml>=v[v.length-1])return tab.H*(1+(ml-v[v.length-1])/v[v.length-1]);
+  let i=1;while(v[i]<ml)i++;const f=(ml-v[i-1])/(v[i]-v[i-1]);return (i-1+f)*tab.dz}
+
+/* ================= stato ================= */
+const ICE_LIQ=.55;
+const st={drink:null,glass:null,scale:1,fill:null,ice:true,dims:{},cal:null};
+try{st.dims=JSON.parse(localStorage.getItem("bar_dims")||"{}");const c=parseFloat(localStorage.getItem("bar_cal"));if(c>0)st.cal=c}catch(e){}
+const dims=gk=>({D:st.dims[gk]?.D||G[gk].D,H:st.dims[gk]?.H||G[gk].H});
+const saveDims=()=>{try{localStorage.setItem("bar_dims",JSON.stringify(st.dims))}catch(e){}};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const norm=s=>s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z0-9 ]/g,"").trim();
+const mlf=x=>(Math.round(x*2)/2).toLocaleString("it-IT",{maximumFractionDigits:1});
+const $=id=>document.getElementById(id);
+const baseOf=dr=>dr.ing.filter(i=>!i[3]).sort((a,b)=>b[1]-a[1])[0]?.[0]||"";
+
+/* calcolo dosi e livelli */
+function doses(){
+  const dr=st.drink,gk=st.glass,dm=dims(gk),tab=volTable(gk,dm),cap=tab.v[tab.v.length-1];
+  const dil=DIL[dr.m]||0, liq=st.ice?ICE_LIQ:1;
+  let q=dr.ing.map(i=>({n:i[0],ml:i[1]*st.scale,c:C[i[2]]||"#ccc",top:i[3]==="t",spl:i[3]==="s"}));
+  if(st.fill){const target=cap*.88*liq/(1+dil);const tot=q.reduce((a,b)=>a+b.ml,0);const tops=q.filter(x=>x.top);
+    if(tops.length){const rest=q.filter(x=>!x.top).reduce((a,b)=>a+b.ml,0);const room=target-rest;
+      if(room>=20){const tt=tops.reduce((a,b)=>a+b.ml,0);tops.forEach(x=>x.ml=room*x.ml/tt)}else{const f=target/tot;q.forEach(x=>x.ml*=f)}}
+    else{const f=target/tot;q.forEach(x=>x.ml*=f)}}
+  let acc=0;const lv=q.map(x=>{acc+=x.ml;return{...x,cum:acc,h:heightFor(tab,acc/liq)}});
+  const total=acc,final=total*(1+dil),hFinal=dil?heightFor(tab,final/liq):null;
+  return{q:lv,cap,total,final,hFinal,dil,over:(dil?final:total)/liq>cap,dm,tab};
+}
+
+/* ================= disegno del bicchiere ================= */
+function glassSVG(gk,dm,lv,o){
+  // o: {pxmm, W, H, zeroY, cx, labels, dark}
+  const s=o.pxmm,R=dm.D/2,H=dm.H,g=G[gk],cx=o.cx,y0=o.zeroY;const Y=z=>y0-z*s,X=r=>r*s;
+  let out="";const N=60;
+  const side=(z1,z2,sgn)=>{const p=[];for(let i=0;i<=N;i++){const z=z1+(z2-z1)*i/N;p.push([cx+sgn*X(radius(gk,dm,z)),Y(z)])}return p};
+  // strati
+  let prev=0;
+  lv.q.forEach(l=>{const h=Math.min(l.h,H);if(h<=prev+.01){return}
+    const L=side(prev,h,-1),Rr=side(prev,h,1).reverse();
+    out+=`<path d="M${[...L,...Rr].map(p=>p.map(v=>v.toFixed(1)).join(",")).join("L")}Z" fill="${l.c}" fill-opacity="${o.dark?.85:.92}"/>`;prev=h});
+  // ghiaccio
+  if(st.ice&&o.iceDraw){const top=Math.min(H*.92,Math.max(prev,H*.6));for(let z=6;z<top-10;z+=22){const r=radius(gk,dm,z+10)*.55;[-1,1].forEach((sg,k)=>{const x=cx+sg*X(r*.55)-X(9)+(k?X(2):0);out+=`<rect x="${x.toFixed(1)}" y="${Y(z+18).toFixed(1)}" width="${X(18).toFixed(1)}" height="${X(16).toFixed(1)}" rx="${X(3)}" fill="#ffffff" fill-opacity=".28" stroke="#ffffff" stroke-opacity=".55" stroke-width="1"/>`})}}
+  // contorno
+  const L=side(0,H,-1),Rr=side(0,H,1);const stroke=o.dark?"#e8eeee":"var(--fg)";
+  out+=`<path d="M${L.reverse().map(p=>p.map(v=>v.toFixed(1)).join(",")).join("L")}L${Rr.map(p=>p.map(v=>v.toFixed(1)).join(",")).join("L")}" fill="none" stroke="${stroke}" stroke-width="${o.dark?2:2.2}" stroke-linejoin="round"/>`;
+  const bw=g.stem?Math.min(R*.8,32):R;
+  if(g.stem&&o.decor){out+=`<line x1="${cx}" y1="${Y(0)}" x2="${cx}" y2="${Y(-g.stem)}" stroke="${stroke}" stroke-width="3"/><line x1="${cx-X(bw)}" y1="${Y(-g.stem)}" x2="${cx+X(bw)}" y2="${Y(-g.stem)}" stroke="${stroke}" stroke-width="3" stroke-linecap="round"/>`}
+  else if(o.decor){out+=`<line x1="${cx-X(R)}" y1="${Y(-g.base)}" x2="${cx+X(R)}" y2="${Y(-g.base)}" stroke="${stroke}" stroke-width="2.2"/><line x1="${cx-X(R)}" y1="${Y(0)}" x2="${cx-X(R)}" y2="${Y(-g.base)}" stroke="${stroke}" stroke-width="2.2"/><line x1="${cx+X(R)}" y1="${Y(0)}" x2="${cx+X(R)}" y2="${Y(-g.base)}" stroke="${stroke}" stroke-width="2.2"/>`}
+  if(lv.hFinal&&o.final){const h=Math.min(lv.hFinal,H);out+=`<line x1="${cx-X(radius(gk,dm,h))}" x2="${cx+X(radius(gk,dm,h))}" y1="${Y(h)}" y2="${Y(h)}" stroke="${o.dark?"#e0ad4c":"var(--accent)"}" stroke-width="1.6" stroke-dasharray="5 4"/>`}
+  return out;
+}
+function iconSVG(gk){const dm={D:G[gk].D,H:G[gk].H};const s=Math.min(30/dm.D,(gk==="rocks"||gk==="highball"?38:26)/dm.H);
+  const g=G[gk];const tot=dm.H+(g.stem||g.base);const y0=4+dm.H*s;
+  return `<svg viewBox="0 0 34 44" aria-hidden="true">${glassSVG(gk,dm,{q:[]},{pxmm:s,cx:17,zeroY:y0+(44-8-tot*s)/2,decor:1})}</svg>`.replace(/stroke-width="2.2"/g,'stroke-width="1.6"').replace(/stroke-width="3"/g,'stroke-width="1.6"')}
+
+/* ================= vista drink ================= */
+function render(){
+  const dr=st.drink;if(!dr)return;const L=doses();const gk=st.glass;const dm=L.dm;
+  const scaleTxt=st.fill?"riempito":"× "+st.scale.toLocaleString("it-IT");
+  // diagramma a scala fissa
+  const W=300,Hpx=330,g=G[gk],totmm=dm.H+(g.stem||g.base)+6;const s=Math.min((Hpx-30)/totmm,(W-20)/(dm.D*1.35));
+  const y0=Hpx-12-(g.stem||g.base)*s;
+  const diag=`<svg viewBox="0 0 ${W} ${Hpx}" role="img" aria-label="Bicchiere ${g.n} con i livelli degli ingredienti">${glassSVG(gk,dm,L,{pxmm:s,cx:W/2,zeroY:y0,decor:1,iceDraw:1,final:1})}</svg>`;
+  $("drink").innerHTML=`
+  <article class="card">
+    <div class="tags"><span class="tag ${dr.src==="iba"?"iba":""}">${dr.src==="iba"?"Ricetta IBA":"Classico"}</span><span class="tag">${dr.cat}</span><span class="tag">${M[dr.m]}</span></div>
+    <h1 class="dname">${esc(dr.n)}</h1>
+    <div class="cols">
+      <div><h2>Ingredienti <span style="text-transform:none;letter-spacing:0;font-weight:500">· dose ${scaleTxt}</span></h2>
+        <ul class="ing">${L.q.map(i=>`<li><span class="dot" style="background:${i.c}"></span><span>${esc(i.n)}${i.top?' <small class="muted">(colmare)</small>':i.spl?' <small class="muted">(uno spruzzo)</small>':""}</span><span class="ml">${mlf(i.ml)} <small>ml</small></span></li>`).join("")}</ul>
+        ${dr.extra.length?`<ul class="extra">${dr.extra.map(e=>`<li>${esc(e)}</li>`).join("")}</ul>`:""}</div>
+      <div><h2>Preparazione</h2><p class="how">${esc(dr.how)}</p><p class="garn"><b>Guarnizione:</b> ${esc(dr.garn)}</p></div>
+    </div>
+    <div class="story"><h2>La storia</h2><p>${esc(dr.story)}</p></div>
+  </article>
+  <section class="card">
+    <h2>Il bicchiere</h2>
+    <div class="glasses" role="group" aria-label="Forma del bicchiere">${Object.keys(G).map(k=>`<button type="button" class="gbtn" data-g="${k}" aria-pressed="${k===gk}">${iconSVG(k)}${G[k].n}${k===dr.g?'<span class="rec">consigliato</span>':""}</button>`).join("")}</div>
+    <div class="bench">
+      <div class="diagram">${diag}</div>
+      <div class="ctrls">
+        <div class="row2"><label><span>Diametro bordo (mm)</span><input type="number" id="gD" min="30" max="160" value="${dm.D}"></label><label><span>Altezza interna (mm)</span><input type="number" id="gH" min="20" max="250" value="${dm.H}"></label></div>
+        <div class="cap">Capienza: <b>${Math.round(L.cap)} ml</b></div>
+        <label class="toggle"><input type="checkbox" id="ice" ${st.ice?"checked":""}> Bicchiere pieno di ghiaccio</label>
+        <div><span class="lbl" style="font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600">Dose</span>
+          <div class="stepper" style="margin-top:4px"><button type="button" data-s="-1" aria-label="Riduci dose">−</button><b>${scaleTxt}</b><button type="button" data-s="1" aria-label="Aumenta dose">+</button><button type="button" data-fill="1">Adatta al bicchiere</button>${st.scale!==1||st.fill?'<button type="button" data-reset="1">Dose originale</button>':""}</div></div>
+        <ul class="levels">${L.q.map(i=>`<li><span class="dot" style="background:${i.c}"></span><span>${esc(i.n)}</span><span class="ml">fino a ${mlf(i.h)} mm</span></li>`).join("")}
+          ${L.hFinal?`<li><span class="dot" style="background:transparent;border:1.5px dashed var(--accent)"></span><span>Dopo ${dr.m==="shake"?"lo shaker":dr.m==="blend"?"il frullatore":"la miscelazione"} (+${Math.round(L.dil*100)}% acqua)</span><span class="ml">${mlf(L.hFinal)} mm</span></li>`:""}</ul>
+        ${L.over?`<p class="warn">Il drink non ci sta in questo bicchiere: riduci la dose o tocca «Adatta al bicchiere».</p>`:""}
+        <button type="button" class="btn main" id="openRuler">Usa il telefono come righello</button>
+        <p class="foot" style="margin:0">Le altezze partono dal fondo interno. Con il ghiaccio il liquido sale di più, perché i cubetti occupano circa il 45% dello spazio. ${L.hFinal?"Per i drink shakerati o mescolati i livelli colorati indicano le dosi da versare; la linea tratteggiata il livello finale nel bicchiere.":""}</p>
+      </div>
+    </div>
+  </section>`;
+}
+
+/* ================= ricerca ================= */
+const sugg=$("sugg"),q=$("q");let act=-1,list=[];
+function match(t){const n=norm(t);if(!n)return[];const out=[];
+  D.forEach(dr=>{const nm=norm(dr.n),al=dr.al.map(norm);let sc=0;
+    if(nm.startsWith(n))sc=4;else if(nm.split(" ").some(w=>w.startsWith(n)))sc=3;else if(al.some(a=>a.startsWith(n)))sc=2.5;else if(nm.includes(n)||al.some(a=>a.includes(n)))sc=2;
+    let via="";if(!sc&&n.length>=3){const hit=dr.ing.find(i=>norm(i[0]).includes(n));if(hit){sc=1;via=hit[0]}}
+    if(sc)out.push({dr,sc,via})});
+  return out.sort((a,b)=>b.sc-a.sc||a.dr.n.localeCompare(b.dr.n)).slice(0,8).map(x=>({...x.dr,via:x.via}))}
+function hl(name,t){const n=norm(t);const i=norm(name).indexOf(n);if(i<0||!n)return esc(name);
+  // l'indice sulla stringa normalizzata coincide con l'originale per i nomi senza simboli speciali
+  return esc(name.slice(0,i))+"<b>"+esc(name.slice(i,i+t.length))+"</b>"+esc(name.slice(i+t.length))}
+function showSugg(){list=match(q.value);act=list.length?0:-1;
+  if(!q.value.trim()){sugg.hidden=true;$("combo").setAttribute("aria-expanded","false");return}
+  sugg.innerHTML=list.length?list.map((dr,i)=>`<li role="option" id="op-${i}" data-id="${dr.id}" aria-selected="${i===act}"><span>${hl(dr.n,q.value.trim())}</span><small>${dr.via?"con "+esc(dr.via.toLowerCase()):esc(baseOf(dr))}${dr.src==="iba"?" · IBA":""}</small></li>`).join(""):`<li class="none" role="option" aria-disabled="true">Nessun drink trovato. Puoi cercare anche per ingrediente, per esempio «gin» o «prosecco».</li>`;
+  sugg.hidden=false;$("combo").setAttribute("aria-expanded","true");q.setAttribute("aria-activedescendant",act>=0?"op-"+act:"")}
+function mark(){[...sugg.querySelectorAll("li[data-id]")].forEach((li,i)=>li.setAttribute("aria-selected",i===act));q.setAttribute("aria-activedescendant",act>=0?"op-"+act:"");sugg.querySelector(`#op-${act}`)?.scrollIntoView({block:"nearest"})}
+q.addEventListener("input",showSugg);
+q.addEventListener("focus",()=>{if(q.value)showSugg()});
+q.addEventListener("keydown",e=>{
+  if(e.key==="ArrowDown"){e.preventDefault();if(list.length){act=(act+1)%list.length;mark()}}
+  else if(e.key==="ArrowUp"){e.preventDefault();if(list.length){act=(act-1+list.length)%list.length;mark()}}
+  else if(e.key==="Enter"){e.preventDefault();if(list[act])pick(list[act].id)}
+  else if(e.key==="Escape"){sugg.hidden=true;$("combo").setAttribute("aria-expanded","false")}});
+sugg.addEventListener("mousedown",e=>e.preventDefault());
+sugg.addEventListener("click",e=>{const li=e.target.closest("li[data-id]");if(li)pick(li.dataset.id)});
+document.addEventListener("click",e=>{if(!e.target.closest("#combo")){sugg.hidden=true;$("combo").setAttribute("aria-expanded","false")}});
+function pick(id,noHash){const dr=D.find(x=>x.id===id);if(!dr)return;st.drink=dr;st.glass=dr.g;st.ice=!!dr.ice;st.scale=1;st.fill=null;
+  q.value=dr.n;sugg.hidden=true;$("combo").setAttribute("aria-expanded","false");q.blur();
+  if(!noHash){try{history.replaceState(null,"","#"+id)}catch(e){location.hash=id}}
+  render();window.scrollTo({top:0})}
+const POP=["negroni","spritz","mojito","gintonic","margarita","espressomartini","oldfashioned","moscowmule"];
+$("quick").innerHTML=POP.map(id=>`<button type="button" data-q="${id}">${esc(D.find(x=>x.id===id).n)}</button>`).join("")+`<button type="button" class="rand" data-q="rand">Sorprendimi</button>`;
+$("quick").onclick=e=>{const b=e.target.closest("[data-q]");if(!b)return;const id=b.dataset.q==="rand"?D[Math.floor(Math.random()*D.length)].id:b.dataset.q;pick(id)};
+
+/* controlli del banco */
+$("drink").addEventListener("click",e=>{
+  const g=e.target.closest("[data-g]");if(g){st.glass=g.dataset.g;render();return}
+  const s=e.target.closest("[data-s]");if(s){st.fill=null;st.scale=Math.max(.5,Math.min(4,st.scale+(+s.dataset.s)*.25));render();return}
+  if(e.target.closest("[data-fill]")){st.fill=true;render();return}
+  if(e.target.closest("[data-reset]")){st.fill=null;st.scale=1;render();return}
+  if(e.target.id==="openRuler")openRuler();
+});
+$("drink").addEventListener("change",e=>{
+  if(e.target.id==="ice"){st.ice=e.target.checked;render()}
+  if(e.target.id==="gD"||e.target.id==="gH"){const v=+e.target.value;if(!(v>0))return;const cur=dims(st.glass);st.dims[st.glass]={...cur,[e.target.id==="gD"?"D":"H"]:v};saveDims();render()}
+});
+
+/* ================= righello ================= */
+const R={zero:null,wake:null};
+function defaultCal(){return matchMedia("(pointer:coarse)").matches?6.0:96/25.4}
+function openRuler(){$("ruler").hidden=false;document.body.style.overflow="hidden";
+  try{navigator.wakeLock?.request("screen").then(w=>R.wake=w).catch(()=>{})}catch(e){}
+  if(!st.cal)openCalib();else drawRuler()}
+function closeRuler(){$("ruler").hidden=true;document.body.style.overflow="";try{R.wake?.release()}catch(e){}R.wake=null}
+function drawRuler(){
+  const el=$("ruler"),W=el.clientWidth,H=el.clientHeight,s=st.cal||defaultCal();
+  if(R.zero==null)R.zero=H-Math.max(60,H*.12);
+  const L=doses(),gk=st.glass,dm=L.dm,y0=R.zero;let o="";
+  const glassX=Math.min(W*.6,W-40-dm.D*s*.65);
+  o+=glassSVG(gk,dm,L,{pxmm:s,cx:glassX,zeroY:y0,dark:1,iceDraw:0,final:1});
+  // scala millimetrica a sinistra
+  for(let mm=-200;mm<=260;mm++){const y=y0-mm*s;if(y<0||y>H)continue;const big=mm%10===0,mid=mm%5===0;
+    o+=`<line x1="0" x2="${big?26:mid?17:10}" y1="${y.toFixed(1)}" y2="${y.toFixed(1)}" stroke="${mm===0?"#e0ad4c":"#9fb0ae"}" stroke-width="${big?1.6:1}"/>`;
+    if(big&&mm>=0)o+=`<text x="30" y="${(y+4).toFixed(1)}" font-size="11" fill="#9fb0ae" font-family="DM Mono,monospace">${mm/10}</text>`}
+  o+=`<text x="30" y="${(Math.min(H-6,y0+16)).toFixed(1)}" font-size="10" fill="#9fb0ae" font-family="DM Mono,monospace">cm</text>`;
+  // linea dello zero
+  o+=`<line x1="0" x2="${W}" y1="${y0}" y2="${y0}" stroke="#e0ad4c" stroke-width="2.5"/><text x="58" y="${y0+20}" font-size="13" font-weight="700" fill="#e0ad4c" font-family="Manrope,sans-serif">0 · fondo interno del bicchiere (trascina)</text>`;
+  // livelli
+  let lastY=1e9;const items=L.q.map(l=>({y:y0-l.h*s,c:l.c,t:`${l.n} · ${mlf(l.cum)} ml · ${mlf(l.h)} mm`}));
+  if(L.hFinal)items.push({y:y0-L.hFinal*s,c:"#e0ad4c",t:`livello finale dopo ${st.drink.m==="shake"?"lo shaker":"la miscelazione"} · ${mlf(L.hFinal)} mm`,dash:1});
+  let hidden=0;
+  items.forEach(it=>{if(it.y<70){hidden++;return}
+    o+=`<line x1="44" x2="${W}" y1="${it.y.toFixed(1)}" y2="${it.y.toFixed(1)}" stroke="${it.c}" stroke-width="2" ${it.dash?'stroke-dasharray="6 5"':""}/>`;
+    let ty=it.y-6;if(lastY-ty<16)ty=lastY-16;lastY=ty;
+    o+=`<rect x="46" y="${(ty-12).toFixed(1)}" width="${Math.min(W-56,it.t.length*7.4+22)}" height="17" rx="3" fill="#0b0f10" fill-opacity=".75"/><circle cx="54" cy="${(ty-3.5).toFixed(1)}" r="4" fill="${it.c}"/><text x="62" y="${ty.toFixed(1)}" font-size="12" fill="#f2f2f2" font-family="Manrope,sans-serif">${esc(it.t)}</text>`});
+  if(hidden)o+=`<text x="${W/2}" y="86" text-anchor="middle" font-size="13" fill="#e0ad4c" font-family="Manrope,sans-serif">↑ ${hidden} ${hidden>1?"livelli sono":"livello è"} sopra lo schermo: trascina in giù</text>`;
+  $("rsvg").setAttribute("viewBox",`0 0 ${W} ${H}`);$("rsvg").innerHTML=o;
+}
+let drag=null;
+$("ruler").addEventListener("pointerdown",e=>{if(e.target.closest("button,.calib"))return;drag={y:e.clientY,z:R.zero};$("ruler").setPointerCapture?.(e.pointerId)});
+$("ruler").addEventListener("pointermove",e=>{if(!drag)return;R.zero=drag.z+(e.clientY-drag.y);drawRuler()});
+["pointerup","pointercancel"].forEach(ev=>$("ruler").addEventListener(ev,()=>drag=null));
+$("rup").onclick=()=>{R.zero-=st.cal||defaultCal();drawRuler()};
+$("rdown").onclick=()=>{R.zero+=st.cal||defaultCal();drawRuler()};
+$("rclose").onclick=closeRuler;
+$("rcal").onclick=openCalib;
+window.addEventListener("resize",()=>{if(!$("ruler").hidden)drawRuler()});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("ruler").hidden)closeRuler()});
+function openCalib(){$("calib").hidden=false;const v=st.cal||defaultCal();$("calr").value=v;sizeCard(v)}
+function sizeCard(v){const c=$("card85");c.style.width=(85.6*v)+"px";c.style.height=(53.98*v)+"px"}
+$("calr").addEventListener("input",e=>sizeCard(+e.target.value));
+$("calm").onclick=()=>{$("calr").value=(+$("calr").value-.02).toFixed(2);sizeCard(+$("calr").value)};
+$("calp").onclick=()=>{$("calr").value=(+$("calr").value+.02).toFixed(2);sizeCard(+$("calr").value)};
+$("calok").onclick=()=>{st.cal=+$("calr").value;try{localStorage.setItem("bar_cal",st.cal)}catch(e){}$("calib").hidden=true;R.zero=null;drawRuler()};
+
+/* avvio */
+const startId=(location.hash||"").slice(1);
+pick(D.find(x=>x.id===startId)?startId:"negroni",true);q.value="";
+window.addEventListener("hashchange",()=>{const id=location.hash.slice(1);if(D.find(x=>x.id===id)&&st.drink?.id!==id)pick(id,true)});
+</script>
+
+<script>if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js").catch(()=>{});}</script>
+</body></html>
