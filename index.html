@@ -48,6 +48,15 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .tags{display:flex;flex-wrap:wrap;gap:6px}
 .tag{font-size:12px;letter-spacing:.06em;text-transform:uppercase;font-weight:700;border:1px solid var(--line);border-radius:4px;padding:2px 8px;color:var(--muted)}
 .tag.iba{border-color:var(--accent);color:var(--accent)}
+.tag.zero{border-color:#2f7d4f;color:#2f7d4f;background:color-mix(in srgb,#2f7d4f 10%,transparent)}
+.modes{display:inline-flex;border:1.5px solid var(--line);border-radius:999px;padding:3px;background:var(--surface);margin-top:10px}
+.modes button{border:0;background:transparent;color:var(--muted);font:inherit;font-weight:700;font-size:14px;padding:7px 16px;border-radius:999px;cursor:pointer}
+.modes button[aria-pressed="true"]{background:var(--ink);color:var(--surface)}
+.zgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.zgrid button{text-align:left;border:1px solid var(--line);background:var(--field);color:var(--fg);border-radius:10px;padding:10px 12px;font:inherit;cursor:pointer;display:flex;flex-direction:column;gap:2px}
+.zgrid button[aria-current="true"]{border-color:#2f7d4f;background:color-mix(in srgb,#2f7d4f 10%,var(--field))}
+.zgrid b{font-size:15px}
+.zgrid span{font-size:12px;color:var(--muted)}
 .cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px}
 h2{font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--muted);margin:0 0 8px}
 .ing{list-style:none;margin:0;padding:0}
@@ -144,8 +153,10 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
       <input id="q" type="search" placeholder="Cerca un drink o un ingrediente…" autocomplete="off" aria-autocomplete="list" aria-controls="sugg" aria-label="Cerca un drink">
       <ul class="sugg" id="sugg" role="listbox" hidden></ul>
     </div>
+    <div class="modes" role="group" aria-label="Tipo di drink"><button type="button" data-mode="alcol" aria-pressed="true">Cocktail</button><button type="button" data-mode="zero" aria-pressed="false">Analcolici</button></div>
     <div class="quick" id="quick"></div>
   </div>
+  <section class="card" id="zeroList" hidden><h2>Tutti gli analcolici</h2><div class="zgrid" id="zgrid"></div></section>
   <details class="card maker" id="maker">
     <summary><span><h2>Cosa preparo?</h2><span class="big">Con quello che ho in casa</span></span><span class="chev" aria-hidden="true">▾</span></summary>
     <div class="mk">
@@ -162,11 +173,12 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
         <div class="field"><input id="tq" type="text" placeholder="Descrivilo: «fresco e un po' amaro», «dolce e cremoso»…" autocomplete="off" aria-label="Descrivi il gusto che preferisci"></div>
         <div class="taste" id="taste" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px"></div>
       </div>
+      <p class="hint" id="modeHint"></p>
       <div id="results"></div>
     </div>
   </details>
   <div id="drink"></div>
-  <p class="foot">Dosi dalla lista ufficiale <a href="https://iba-world.com/2021/02/02/2020-iba-official-cocktail-list/" target="_blank" rel="noopener">IBA (International Bartenders Association)</a>; i drink segnati come “classico” non sono nella lista IBA e seguono la ricetta più diffusa. Le storie riportano le versioni più accreditate: per molti drink l'origine è contesa. Bevi responsabilmente.</p>
+  <p class="foot">Dosi dalla lista ufficiale <a href="https://iba-world.com/2021/02/02/2020-iba-official-cocktail-list/" target="_blank" rel="noopener">IBA (International Bartenders Association)</a>; i drink segnati come “classico” non sono nella lista IBA e seguono la ricetta più diffusa; gli analcolici seguono le ricette più diffuse. Le storie riportano le versioni più accreditate: per molti drink l'origine è contesa. Bevi responsabilmente.</p>
 </div>
 
 <div class="ruler" id="ruler" hidden>
@@ -183,7 +195,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 
 <script>
 /* ================= colori degli ingredienti ================= */
-const C={clear:"#e3ecef",gin:"#e3ecef",vodka:"#e3ecef",rumb:"#ece9df",rumamb:"#b8732a",rums:"#6e3610",whisky:"#c47a2c",cognac:"#a8541c",tequila:"#ece8cf",mezcal:"#e4dfc4",campari:"#c8102e",aperol:"#f2620f",vrosso:"#6b1a1a",vdry:"#e9e2b8",bolle:"#f1df98",soda:"#d8e9f2",tonica:"#dbe8ee",lime:"#c8dc6e",limone:"#f2e47a",sciroppo:"#f5efd8",cola:"#3b1d0e",ginger:"#d9b46a",gingerale:"#e6c98d",cranberry:"#b1123a",arancia:"#f6a12e",pompelmo:"#f2896a",ananas:"#f3d36a",pomodoro:"#b3261e",cocco:"#f4efe3",panna:"#faf5e8",caffeliq:"#2b160b",espresso:"#3a2112",triple:"#efe8d8",granatina:"#a8102a",pesca:"#f7c59f",fragola:"#e0475a",amaretto:"#9b4a1b",drambuie:"#c88d2c",menta:"#2fa35a",cacao:"#efe5d3",maraschino:"#eceade",chartv:"#7fb53a",chartg:"#e3cd47",violetta:"#8e7cc3",mure:"#4b1030",cassis:"#4a0d2b",vinob:"#ece2a0",vinor:"#5c0f1d",albume:"#f4f1e8",galliano:"#f0d23a",lillet:"#efd48a",nonino:"#b06a2a",fernet:"#2b1a12",sambuco:"#f1edc6",miele:"#e2a93a",orzata:"#efe6d2",curacao:"#e8a03a",cherry:"#7a0f22",benedictine:"#c9902e",calvados:"#c98a3c",apricot:"#e08a3a",grappa:"#eeeee6",pisco:"#eeeee6",cachaca:"#eeeee6",lagavulin:"#b97a35",acqua:"#dcecf3"};
+const C={clear:"#e3ecef",gin:"#e3ecef",vodka:"#e3ecef",rumb:"#ece9df",rumamb:"#b8732a",rums:"#6e3610",whisky:"#c47a2c",cognac:"#a8541c",tequila:"#ece8cf",mezcal:"#e4dfc4",campari:"#c8102e",aperol:"#f2620f",vrosso:"#6b1a1a",vdry:"#e9e2b8",bolle:"#f1df98",soda:"#d8e9f2",tonica:"#dbe8ee",lime:"#c8dc6e",limone:"#f2e47a",sciroppo:"#f5efd8",cola:"#3b1d0e",ginger:"#d9b46a",gingerale:"#e6c98d",cranberry:"#b1123a",arancia:"#f6a12e",pompelmo:"#f2896a",ananas:"#f3d36a",pomodoro:"#b3261e",cocco:"#f4efe3",panna:"#faf5e8",caffeliq:"#2b160b",espresso:"#3a2112",triple:"#efe8d8",granatina:"#a8102a",pesca:"#f7c59f",fragola:"#e0475a",amaretto:"#9b4a1b",drambuie:"#c88d2c",menta:"#2fa35a",cacao:"#efe5d3",maraschino:"#eceade",chartv:"#7fb53a",chartg:"#e3cd47",violetta:"#8e7cc3",mure:"#4b1030",cassis:"#4a0d2b",vinob:"#ece2a0",vinor:"#5c0f1d",albume:"#f4f1e8",galliano:"#f0d23a",lillet:"#efd48a",nonino:"#b06a2a",fernet:"#2b1a12",sambuco:"#f1edc6",miele:"#e2a93a",orzata:"#efe6d2",curacao:"#e8a03a",cherry:"#7a0f22",benedictine:"#c9902e",calvados:"#c98a3c",apricot:"#e08a3a",grappa:"#eeeee6",pisco:"#eeeee6",cachaca:"#eeeee6",lagavulin:"#b97a35",acqua:"#dcecf3",te:"#a8661e",limonata:"#f3ec9a",crodino:"#f0a020",tuorlo:"#f2c230",bolle0:"#f1e6b0"};
 
 /* ================= drink =================
    ing: [nome, ml, colore, flag]  flag "t" = colmare, "s" = spruzzo
@@ -383,6 +395,52 @@ d("kirbianco","Kir","iba","Aperitivo","calice",0,"build",[["Crème de cassis",10
  "Versa la crème de cassis nel calice e colma con il vino bianco freddo.",
  "La versione originale del canonico Félix Kir, sindaco di Digione: vino bianco aligoté e liquore di ribes nero, i due vanti della Borgogna.",["vino cassis"]);
 
+
+/* ---------- analcolici ---------- */
+const z=(id,n,g,ice,m,ing,extra,garn,how,story,al=[])=>d(id,n,"analcolico","Analcolico",g,ice,m,ing,extra,garn,how,story,al);
+z("shirleytemple","Shirley Temple","highball",1,"build",[["Sciroppo di granatina",15,"granatina"],["Ginger ale",150,"gingerale","t"]],[],"Ciliegia al maraschino",
+ "Versa la granatina nel bicchiere con ghiaccio e colma con il ginger ale. Mescola appena.",
+ "Il primo mocktail famoso nasce negli anni Trenta a Hollywood per la bambina prodigio Shirley Temple, che agli adulti vedeva servire i cocktail. Lo rivendicano più locali, dal Chasen's al Brown Derby. Lei, da adulta, raccontò di non averci avuto niente a che fare e di non amarlo: «Troppo dolce!».");
+z("royrogers","Roy Rogers","highball",1,"build",[["Sciroppo di granatina",15,"granatina"],["Cola",150,"cola","t"]],[],"Ciliegia al maraschino",
+ "Versa la granatina nel bicchiere con ghiaccio e colma con la cola.",
+ "È la versione «da cowboy» dello Shirley Temple, con la cola al posto del ginger ale. Porta il nome di Roy Rogers, cantante e attore dei film western americani, così che anche i ragazzi avessero il loro drink da bar.");
+z("nojito","Virgin Mojito","highball",1,"muddle",[["Succo di lime",20,"lime"],["Sciroppo di zucchero",15,"sciroppo"],["Soda",120,"soda","t"]],["8 foglie di menta"],"Rametto di menta e fetta di lime",
+ "Pesta delicatamente menta, lime e sciroppo nel bicchiere, riempi di ghiaccio tritato, colma con la soda e mescola dal basso.",
+ "Il Mojito senza rum, detto anche «Nojito». Conserva tutto ciò che rende il Mojito rinfrescante: lime, menta e bollicine. È tra gli analcolici più ordinati d'estate.",["nojito","mojito analcolico"]);
+z("virgincolada","Virgin Colada","highball",0,"blend",[["Crema di cocco",30,"cocco"],["Succo d'ananas",90,"ananas"],["Succo di lime",10,"lime"]],[],"Fetta d'ananas e ciliegia",
+ "Frulla tutto con una manciata di ghiaccio e versa nel bicchiere grande, con la cannuccia.",
+ "La Piña Colada di Portorico senza rum: cocco e ananas frullati con il ghiaccio. Il lime è facoltativo ma bilancia la dolcezza.",["pina colada analcolica"]);
+z("virginmary","Virgin Mary","highball",1,"stir",[["Succo di pomodoro",120,"pomodoro"],["Succo di limone",15,"limone"]],["2 gocce di salsa Worcestershire","Tabasco, sale al sedano e pepe a piacere"],"Gambo di sedano",
+ "Mescola tutto nel mixing glass con il ghiaccio e versa nel bicchiere con ghiaccio.",
+ "Il Bloody Mary senza vodka, chiamato scherzosamente anche «Bloody Shame». Il gusto sapido e speziato lo rende perfetto per il brunch.",["bloody mary analcolico"]);
+z("sanfrancisco","San Francisco","highball",1,"shake",[["Succo d'arancia",60,"arancia"],["Succo d'ananas",60,"ananas"],["Succo di limone",20,"limone"],["Sciroppo di granatina",10,"granatina"]],[],"Spicchio d'arancia e ciliegia",
+ "Shakera i succhi con il ghiaccio, versa nel bicchiere e aggiungi la granatina, che scende sul fondo. Mescola prima di bere.",
+ "Un classico dei bar italiani, diffusissimo negli anni Settanta e Ottanta come «cocktail della festa» per chi non beveva. L'origine non è documentata; il nome sembra richiamare il sole della California.");
+z("pussyfoot","Pussyfoot","calice",1,"shake",[["Succo d'arancia",120,"arancia"],["Succo di limone",15,"limone"],["Succo di lime",15,"lime"],["Sciroppo di granatina",15,"granatina"],["Tuorlo d'uovo",15,"tuorlo"]],["7 foglie di menta"],"Fetta d'arancia",
+ "Shakera tutto con il ghiaccio, filtra, shakera di nuovo senza ghiaccio per montare il tuorlo e versa nel bicchiere con ghiaccio.",
+ "Londra, 1920: Robert Vermeire, barman dell'Embassy Club, lo crea come drink senza alcol e lo dedica, con ironia, a William «Pussyfoot» Johnson, uno dei più accesi sostenitori del Proibizionismo.");
+z("crodinospritz","Spritz analcolico","calice",1,"build",[["Bitter analcolico (Crodino)",100,"crodino"],["Soda",60,"soda","t"]],["Fetta d'arancia"],"Fetta d'arancia",
+ "Nel calice pieno di ghiaccio versa il bitter analcolico, colma con la soda e aggiungi la fetta d'arancia.",
+ "L'aperitivo all'italiana senza alcol. Il Crodino nasce nel 1965 a Crodo, in Piemonte, ideato dall'enologo Maurizio Gozzelino per le Terme di Crodo, che volevano un analcolico diverso dalle solite bibite. Il nome viene proprio dal paese.",["crodino","aperitivo analcolico"]);
+z("espressotonic","Espresso Tonic","highball",1,"build",[["Acqua tonica",120,"tonica"],["Espresso",30,"espresso"]],[],"Scorza di limone (facoltativa)",
+ "Riempi il bicchiere di ghiaccio, versa la tonica e poi, lentamente, l'espresso: resta a strati.",
+ "Nasce nel 2007 in Scandinavia: un barista lo prepara a Oslo per i futuri fondatori della torrefazione svedese Koppi, che lo mettono nel menu a Helsingborg come «Kaffe & Tonic». Oggi è un classico dei caffè specialty.",["caffe tonic"]);
+z("arnoldpalmer","Arnold Palmer","highball",1,"build",[["Tè freddo",100,"te"],["Limonata",100,"limonata"]],[],"Fetta di limone",
+ "Riempi il bicchiere di ghiaccio e versa metà tè freddo e metà limonata.",
+ "Porta il nome del campione di golf Arnold Palmer, che lo preparava a casa e lo ordinava nei club: gli altri iniziarono a chiedere «quello che beve Palmer». Negli Stati Uniti è diventato un classico estivo.",["te e limonata"]);
+z("virginmule","Virgin Mule","highball",1,"build",[["Succo di lime",20,"lime"],["Ginger beer analcolica",150,"ginger","t"]],["Qualche foglia di menta"],"Fetta di lime e menta",
+ "Nel bicchiere o nella tazza di rame con ghiaccio versa il lime e colma con la ginger beer. Mescola e aggiungi la menta.",
+ "Il Moscow Mule senza vodka: resta il pizzicore dello zenzero e la freschezza del lime. La ginger beer tradizionale è già quasi sempre analcolica.",["moscow mule analcolico"]);
+z("hugozero","Hugo analcolico","calice",1,"build",[["Sciroppo di fiori di sambuco",20,"sambuco"],["Spumante analcolico",120,"bolle0"],["Soda",30,"soda","s"]],["6–8 foglie di menta","Fetta di lime"],"Menta e lime",
+ "Nel calice metti menta e lime, versa lo sciroppo e il ghiaccio, poi lo spumante analcolico e uno spruzzo di soda.",
+ "La versione senza alcol dell'Hugo nato in Alto Adige nel 2005. Con uno spumante analcolico mantiene profumo floreale e bollicine; si può fare anche solo con acqua frizzante.",["hugo zero"]);
+z("virginsunrise","Virgin Sunrise","highball",1,"build",[["Succo d'arancia",120,"arancia"],["Sciroppo di granatina",15,"granatina"]],[],"Mezza fetta d'arancia",
+ "Versa il succo d'arancia sul ghiaccio e poi la granatina lungo il bordo, senza mescolare: si forma l'alba.",
+ "La Tequila Sunrise senza tequila: stesso effetto a strati, dal rosso del fondo all'arancione in superficie. Un modo semplice per far sentire speciale anche chi non beve.",["sunrise analcolico"]);
+z("limonatamenta","Limonata alla menta","highball",1,"muddle",[["Succo di limone",40,"limone"],["Sciroppo di zucchero",25,"sciroppo"],["Acqua frizzante",120,"soda","t"]],["8 foglie di menta"],"Rametto di menta e rondella di limone",
+ "Pesta delicatamente la menta con lo sciroppo, aggiungi limone e ghiaccio e colma con l'acqua frizzante.",
+ "La limonata fatta in casa esiste da secoli, dal Medio Oriente all'Europa. Con la menta fresca diventa il più semplice e dissetante degli analcolici.",["limonata"]);
+
 /* ================= bicchieri =================
    profilo: raggio come frazione del raggio al bordo, in funzione dell'altezza t (0 fondo, 1 bordo) */
 const G={
@@ -463,7 +521,7 @@ function render(){
   const diag=`<svg viewBox="0 0 ${W} ${Hpx}" role="img" aria-label="Bicchiere ${g.n} con i livelli degli ingredienti">${glassSVG(gk,dm,L,{pxmm:s,cx:W/2,zeroY:y0,decor:1,iceDraw:1,final:1})}</svg>`;
   $("drink").innerHTML=`
   <article class="card">
-    <div class="tags"><span class="tag ${dr.src==="iba"?"iba":""}">${dr.src==="iba"?"Ricetta IBA":"Classico"}</span><span class="tag">${dr.cat}</span><span class="tag">${M[dr.m]}</span></div>
+    <div class="tags"><span class="tag ${dr.src==="iba"?"iba":dr.src==="analcolico"?"zero":""}">${dr.src==="iba"?"Ricetta IBA":dr.src==="analcolico"?"Analcolico · 0%":"Classico"}</span><span class="tag">${dr.cat}</span><span class="tag">${M[dr.m]}</span></div>
     <h1 class="dname">${esc(dr.n)}</h1>
     <div class="cols">
       <div><h2>Ingredienti <span style="text-transform:none;letter-spacing:0;font-weight:500">· dose ${scaleTxt}</span></h2>
@@ -507,7 +565,7 @@ function hl(name,t){const n=norm(t);const i=norm(name).indexOf(n);if(i<0||!n)ret
   return esc(name.slice(0,i))+"<b>"+esc(name.slice(i,i+t.length))+"</b>"+esc(name.slice(i+t.length))}
 function showSugg(){list=match(q.value);act=list.length?0:-1;
   if(!q.value.trim()){sugg.hidden=true;$("combo").setAttribute("aria-expanded","false");return}
-  sugg.innerHTML=list.length?list.map((dr,i)=>`<li role="option" id="op-${i}" data-id="${dr.id}" aria-selected="${i===act}"><span>${hl(dr.n,q.value.trim())}</span><small>${dr.via?"con "+esc(dr.via.toLowerCase()):esc(baseOf(dr))}${dr.src==="iba"?" · IBA":""}</small></li>`).join(""):`<li class="none" role="option" aria-disabled="true">Nessun drink trovato. Puoi cercare anche per ingrediente, per esempio «gin» o «prosecco».</li>`;
+  sugg.innerHTML=list.length?list.map((dr,i)=>`<li role="option" id="op-${i}" data-id="${dr.id}" aria-selected="${i===act}"><span>${hl(dr.n,q.value.trim())}</span><small>${dr.via?"con "+esc(dr.via.toLowerCase()):esc(baseOf(dr))}${dr.src==="iba"?" · IBA":dr.src==="analcolico"?" · 0%":""}</small></li>`).join(""):`<li class="none" role="option" aria-disabled="true">Nessun drink trovato. Puoi cercare anche per ingrediente, per esempio «gin» o «prosecco».</li>`;
   sugg.hidden=false;$("combo").setAttribute("aria-expanded","true");q.setAttribute("aria-activedescendant",act>=0?"op-"+act:"")}
 function mark(){[...sugg.querySelectorAll("li[data-id]")].forEach((li,i)=>li.setAttribute("aria-selected",i===act));q.setAttribute("aria-activedescendant",act>=0?"op-"+act:"");sugg.querySelector(`#op-${act}`)?.scrollIntoView({block:"nearest"})}
 q.addEventListener("input",showSugg);
@@ -524,9 +582,20 @@ function pick(id,noHash){const dr=D.find(x=>x.id===id);if(!dr)return;st.drink=dr
   q.value=dr.n;sugg.hidden=true;$("combo").setAttribute("aria-expanded","false");q.blur();
   if(!noHash){try{history.replaceState(null,"","#"+id)}catch(e){location.hash=id}}
   render();window.scrollTo({top:0})}
-const POP=["negroni","spritz","mojito","gintonic","margarita","espressomartini","oldfashioned","moscowmule"];
-$("quick").innerHTML=POP.map(id=>`<button type="button" data-q="${id}">${esc(D.find(x=>x.id===id).n)}</button>`).join("")+`<button type="button" class="rand" data-q="rand">Sorprendimi</button>`;
-$("quick").onclick=e=>{const b=e.target.closest("[data-q]");if(!b)return;const id=b.dataset.q==="rand"?D[Math.floor(Math.random()*D.length)].id:b.dataset.q;pick(id)};
+const POP={alcol:["negroni","spritz","mojito","gintonic","margarita","espressomartini","oldfashioned","moscowmule"],zero:["crodinospritz","nojito","sanfrancisco","shirleytemple","espressotonic","virgincolada","hugozero","arnoldpalmer"]};
+let MODE="alcol";try{if(localStorage.getItem("bar_mode")==="zero")MODE="zero"}catch(e){}
+const inMode=dr=>MODE==="zero"?dr.src==="analcolico":dr.src!=="analcolico";
+function renderMode(){
+  document.querySelectorAll("[data-mode]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.mode===MODE));
+  $("quick").innerHTML=POP[MODE].map(id=>`<button type="button" data-q="${id}">${esc(D.find(x=>x.id===id).n)}</button>`).join("")+`<button type="button" class="rand" data-q="rand">Sorprendimi</button>`;
+  $("zeroList").hidden=MODE!=="zero";
+  if(MODE==="zero")$("zgrid").innerHTML=D.filter(x=>x.src==="analcolico").map(x=>`<button type="button" data-q="${x.id}" aria-current="${st.drink&&st.drink.id===x.id}"><b>${esc(x.n)}</b><span>${(x.tags||[]).slice(0,3).map(t=>TASTE[t]).join(" · ")}</span></button>`).join("");
+  if(typeof renderMaker==="function")renderMaker();
+}
+$("quick").onclick=e=>{const b=e.target.closest("[data-q]");if(!b)return;const pool=D.filter(inMode);const id=b.dataset.q==="rand"?pool[Math.floor(Math.random()*pool.length)].id:b.dataset.q;pick(id)};
+$("zgrid").onclick=e=>{const b=e.target.closest("[data-q]");if(b){pick(b.dataset.q);q.value="";renderMode();setTimeout(()=>$("drink").scrollIntoView({behavior:"smooth",block:"start"}),50)}};
+document.querySelector(".modes").onclick=e=>{const b=e.target.closest("[data-mode]");if(!b)return;MODE=b.dataset.mode;try{localStorage.setItem("bar_mode",MODE)}catch(e){}
+  if(st.drink&&!inMode(st.drink)){pick(POP[MODE][0]);q.value=""}renderMode()};
 
 /* controlli del banco */
 $("drink").addEventListener("click",e=>{
@@ -596,17 +665,17 @@ const ING=[
  ["gin","Gin",/\bgin\b/],["vodka","Vodka",/vodka/],["rumb","Rum bianco",/rum bianco|rum bianco cubano/],["rums","Rum scuro o ambrato",/rum (ambrato|della martinica|scuro)/],
  ["cachaca","Cachaça",/cacha/],["tequila","Tequila",/tequila/],["whisky","Whisky / bourbon",/whisk|bourbon|rye|scotch/],["cognac","Cognac o brandy",/cognac|brandy/],
  ["pisco","Pisco",/pisco/],["grappa","Grappa",/grappa/],["campari","Campari",/campari/],["aperol","Aperol",/aperol/],["vrosso","Vermouth rosso",/vermouth rosso/],["vdry","Vermouth dry",/vermouth dry/],
- ["bolle","Prosecco / spumante",/prosecco|spumante|champagne/],["vinob","Vino bianco",/vino bianco/],["triple","Triple sec / Cointreau",/triple sec|cointreau/],["caffeliq","Liquore al caffè",/liquore al caff/],
+ ["bolle0","Spumante analcolico",/spumante analcolico/],["bolle","Prosecco / spumante",/prosecco|spumante|champagne/],["vinob","Vino bianco",/vino bianco/],["triple","Triple sec / Cointreau",/triple sec|cointreau/],["caffeliq","Liquore al caffè",/liquore al caff/],
  ["amaretto","Amaretto",/amaretto/],["maraschino","Maraschino",/maraschino/],["cassis","Crème de cassis",/cassis/],["mure","Crème de mûre",/m[uû]re/],["cacao","Crème de cacao",/cacao/],["menthe","Crème de menthe",/creme de menthe|crème de menthe/],
  ["chartreuse","Chartreuse",/chartreuse/],["drambuie","Drambuie",/drambuie/],["fernet","Fernet-Branca",/fernet/],["nonino","Amaro Nonino",/nonino/],["lillet","Lillet",/lillet/],["pesca_liq","Liquore alla pesca",/liquore alla pesca/],
  ["curacao","Curaçao",/cura[cç]ao/],["orzata","Sciroppo d'orzata",/orzata/],["granatina","Granatina",/granatina/],["benedictine","Bénédictine",/b[eé]n[eé]dictine/],["cherry","Cherry liqueur",/cherry/],["violette","Crème de violette",/violette/],
  ["passion","Liquore al frutto della passione",/frutto della passione/],["angostura","Angostura",/angostura/],["lime","Lime",/\blime\b/],["limone","Limone",/limone/],["arancia","Succo d'arancia",/arancia/],["pompelmo","Pompelmo",/pompelmo/],
  ["ananas","Succo d'ananas",/ananas/],["cranberry","Succo di mirtillo rosso",/mirtillo/],["pomodoro","Succo di pomodoro",/pomodoro/],["pesca","Pesche",/pesca bianca/],["fragola","Fragole o lamponi",/fragol|lampon/],
- ["cocco","Crema di cocco",/cocco/],["panna","Panna",/panna/],["uova","Uova (albume)",/albume/],["espresso","Caffè espresso",/espresso/],["soda","Soda / acqua frizzante",/^soda$/],["tonica","Acqua tonica",/tonica/],
- ["cola","Cola",/cola/],["gingerbeer","Ginger beer",/ginger beer/],["gingerale","Ginger ale",/ginger ale/],["menta","Menta fresca",/menta/],["miele","Miele",/miele/],["agave","Sciroppo d'agave",/agave/],["zenzero","Zenzero fresco",/zenzero/],["sambuco","Sciroppo di sambuco",/sambuco|camomilla/],["worcester","Worcestershire e Tabasco",/worcestershire/]
+ ["cocco","Crema di cocco",/cocco/],["panna","Panna",/panna/],["uova","Uova",/albume|tuorlo/],["espresso","Caffè espresso",/espresso/],["soda","Soda / acqua frizzante",/^soda$|acqua frizzante/],["tonica","Acqua tonica",/tonica/],
+ ["crodino","Bitter analcolico (Crodino)",/crodino|bitter analcolico/],["te","Tè freddo",/t[eè] freddo/],["limonata","Limonata",/limonata/],["cola","Cola",/cola/],["gingerbeer","Ginger beer",/ginger beer/],["gingerale","Ginger ale",/ginger ale/],["menta","Menta fresca",/menta/],["miele","Miele",/miele/],["agave","Sciroppo d'agave",/agave/],["zenzero","Zenzero fresco",/zenzero/],["sambuco","Sciroppo di sambuco",/sambuco|camomilla/],["worcester","Worcestershire e Tabasco",/worcestershire/]
 ];
 const STAPLE=/zucchero|sciroppo di zucchero|sciroppo alla vaniglia|^acqua$|sale|ghiaccio/;
-const ingKey=name=>{const n=name.toLowerCase().replace(/pompelmo rosa/,"pompelmo");if(/soda al pompelmo/.test(n))return"pompelmo";if(/^soda$/.test(n))return"soda";
+const ingKey=name=>{const n=name.toLowerCase().replace(/pompelmo rosa/,"pompelmo");if(/soda al pompelmo/.test(n))return"pompelmo";if(/^soda$|^acqua frizzante$/.test(n))return"soda";
   for(const [k,,re] of ING)if(re.test(n))return k;return null};
 const ingName=k=>(ING.find(x=>x[0]===k)||[k,k])[1];
 // requisiti per drink: ingredienti principali (gli spruzzi sono facoltativi) + extra riconoscibili
@@ -618,9 +687,10 @@ D.forEach(dr=>{const req=new Set(),opt=new Set(),stap=[];
     if(/grand marnier/.test(n))opt.add("triple")});
   dr.req=[...req];dr.opt=[...opt]});
 // gusto di ogni drink
-const TASTE={dolce:"Dolce",amaro:"Amaro",agrumato:"Agrumato",fruttato:"Fruttato",fresco:"Fresco",frizzante:"Frizzante",cremoso:"Cremoso",speziato:"Speziato",caffe:"Al caffè",secco:"Secco",forte:"Forte",leggero:"Leggero"};
+const TASTE0={dolce:"Dolce",amaro:"Amaro",agrumato:"Agrumato",fruttato:"Fruttato",fresco:"Fresco",frizzante:"Frizzante",cremoso:"Cremoso",speziato:"Speziato",caffe:"Al caffè",secco:"Secco",forte:"Forte",leggero:"Leggero"};
+const TASTE=TASTE0;
 const OPP={dolce:"secco",secco:"dolce",forte:"leggero",leggero:"forte"};
-const TT={negroni:"amaro forte",americano:"amaro leggero frizzante",spritz:"amaro frizzante leggero agrumato",sbagliato:"amaro frizzante",mojito:"fresco agrumato frizzante dolce",daiquiri:"agrumato fresco",margarita:"agrumato forte",martini:"secco forte",manhattan:"forte speziato",oldfashioned:"forte dolce speziato",moscowmule:"speziato frizzante fresco agrumato",cosmopolitan:"fruttato agrumato",pinacolada:"dolce cremoso fruttato",bloodymary:"speziato",caipirinha:"agrumato forte fresco",maitai:"fruttato forte dolce",paloma:"agrumato frizzante fresco",whiskeysour:"agrumato dolce cremoso",collins:"agrumato frizzante fresco leggero",bellini:"fruttato frizzante dolce leggero",rossini:"fruttato frizzante dolce leggero",mimosa:"agrumato frizzante leggero",espressomartini:"caffe dolce cremoso",boulevardier:"amaro forte",french75:"frizzante agrumato",sidecar:"agrumato forte",whitelady:"agrumato secco",cubalibre:"dolce frizzante",longisland:"forte dolce agrumato",sunrise:"fruttato dolce",sexbeach:"fruttato dolce",julep:"fresco forte",aviation:"secco agrumato",blackrussian:"caffe dolce forte",whiterussian:"caffe cremoso dolce",bramble:"fruttato agrumato",grasshopper:"cremoso dolce fresco",piscosour:"agrumato cremoso",vesper:"secco forte",kir:"fruttato frizzante leggero",kirbianco:"fruttato leggero",ginfizz:"agrumato frizzante fresco",paperplane:"amaro agrumato",penicillin:"speziato agrumato forte",lastword:"agrumato forte",cloverclub:"fruttato cremoso agrumato",tommys:"agrumato forte",hankypanky:"amaro forte",alexander:"cremoso dolce",rustynail:"dolce forte",singaporesling:"fruttato dolce",horsesneck:"speziato frizzante",champagnecocktail:"frizzante secco",darkstormy:"speziato frizzante",frenchconnection:"dolce forte",godfather:"dolce forte",martinez:"dolce forte",hemingway:"agrumato secco",vento:"agrumato fresco",gintonic:"amaro frizzante fresco secco",garibaldi:"amaro agrumato leggero",hugo:"fresco frizzante leggero dolce",pornstar:"fruttato dolce"};
+const TT={negroni:"amaro forte",americano:"amaro leggero frizzante",spritz:"amaro frizzante leggero agrumato",sbagliato:"amaro frizzante",mojito:"fresco agrumato frizzante dolce",daiquiri:"agrumato fresco",margarita:"agrumato forte",martini:"secco forte",manhattan:"forte speziato",oldfashioned:"forte dolce speziato",moscowmule:"speziato frizzante fresco agrumato",cosmopolitan:"fruttato agrumato",pinacolada:"dolce cremoso fruttato",bloodymary:"speziato",caipirinha:"agrumato forte fresco",maitai:"fruttato forte dolce",paloma:"agrumato frizzante fresco",whiskeysour:"agrumato dolce cremoso",collins:"agrumato frizzante fresco leggero",bellini:"fruttato frizzante dolce leggero",rossini:"fruttato frizzante dolce leggero",mimosa:"agrumato frizzante leggero",espressomartini:"caffe dolce cremoso",boulevardier:"amaro forte",french75:"frizzante agrumato",sidecar:"agrumato forte",whitelady:"agrumato secco",cubalibre:"dolce frizzante",longisland:"forte dolce agrumato",sunrise:"fruttato dolce",sexbeach:"fruttato dolce",julep:"fresco forte",aviation:"secco agrumato",blackrussian:"caffe dolce forte",whiterussian:"caffe cremoso dolce",bramble:"fruttato agrumato",grasshopper:"cremoso dolce fresco",piscosour:"agrumato cremoso",vesper:"secco forte",kir:"fruttato frizzante leggero",kirbianco:"fruttato leggero",ginfizz:"agrumato frizzante fresco",paperplane:"amaro agrumato",penicillin:"speziato agrumato forte",lastword:"agrumato forte",cloverclub:"fruttato cremoso agrumato",tommys:"agrumato forte",hankypanky:"amaro forte",alexander:"cremoso dolce",rustynail:"dolce forte",singaporesling:"fruttato dolce",horsesneck:"speziato frizzante",champagnecocktail:"frizzante secco",darkstormy:"speziato frizzante",frenchconnection:"dolce forte",godfather:"dolce forte",martinez:"dolce forte",hemingway:"agrumato secco",vento:"agrumato fresco",gintonic:"amaro frizzante fresco secco",garibaldi:"amaro agrumato leggero",hugo:"fresco frizzante leggero dolce",pornstar:"fruttato dolce",shirleytemple:"dolce frizzante speziato",royrogers:"dolce frizzante",nojito:"fresco agrumato frizzante",virgincolada:"dolce cremoso fruttato",virginmary:"speziato",sanfrancisco:"fruttato dolce agrumato",pussyfoot:"fruttato agrumato cremoso",crodinospritz:"amaro frizzante",espressotonic:"caffe amaro frizzante",arnoldpalmer:"agrumato fresco",virginmule:"speziato frizzante fresco agrumato",hugozero:"fresco frizzante dolce",virginsunrise:"fruttato dolce",limonatamenta:"agrumato fresco frizzante"};
 D.forEach(dr=>dr.tags=(TT[dr.id]||"").split(" ").filter(Boolean));
 // parole del linguaggio comune → gusto
 const SYN=[[/dolc|zucchero|dessert|goloso/,"dolce"],[/amar|bitter|amarognol/,"amaro"],[/agrum|aspr|acid|limon|lime|sour/,"agrumato"],[/frutt|frutta|bacche|pesca|fragol/,"fruttato"],[/fresc|rinfresc|estiv|menta|dissetant/,"fresco"],[/frizz|bollicin|spumeggiant/,"frizzante"],[/crem|vellutat|morbid|panna/,"cremoso"],[/spezi|piccant|zenzero|pepat/,"speziato"],[/caff/,"caffe"],[/secc|poco dolce|non dolce/,"secco"],[/fort|alcolic|decis|robust/,"forte"],[/legger|delicat|poco alcol|leggerin|aperitivo leggero/,"leggero"]];
@@ -647,9 +717,10 @@ function renderMaker(){
   $("addq").innerHTML=QUICK.filter(k=>!MK.have.has(k)).map(k=>`<button type="button" data-add="${k}">+ ${esc(ingName(k))}</button>`).join("");
   $("staples").checked=MK.staples;
   $("taste").innerHTML=Object.entries(TASTE).map(([k,n])=>`<button type="button" data-t="${k}" aria-pressed="${MK.taste.has(k)}">${n}</button>`).join("");
+  $("modeHint").textContent=MODE==="zero"?"Stai cercando tra gli analcolici. Per i cocktail scegli «Cocktail» in alto.":"Stai cercando tra i cocktail. Per i drink senza alcol scegli «Analcolici» in alto.";
   const R=$("results");
   if(!MK.have.size&&!MK.taste.size){R.innerHTML='<p class="hint">Aggiungi gli ingredienti che hai e scegli un gusto: qui compaiono i drink che puoi preparare.</p>';return}
-  let A=analyze();
+  let A=analyze().filter(x=>inMode(x.dr));
   const byTaste=(a,b)=>b.ts-a.ts||a.miss.length-b.miss.length||a.dr.n.localeCompare(b.dr.n);
   if(MK.taste.size)A=A.filter(x=>x.ts>0||!MK.taste.size);
   const card=x=>`<button type="button" class="rcard" data-open="${x.dr.id}"><b>${esc(x.dr.n)}</b>
@@ -697,7 +768,8 @@ renderMaker();
 
 /* avvio */
 const startId=(location.hash||"").slice(1);
-pick(D.find(x=>x.id===startId)?startId:"negroni",true);q.value="";
+const sd=D.find(x=>x.id===startId);if(sd)MODE=sd.src==="analcolico"?"zero":"alcol";
+pick(sd?startId:POP[MODE][0],true);q.value="";renderMode();
 window.addEventListener("hashchange",()=>{const id=location.hash.slice(1);if(D.find(x=>x.id===id)&&st.drink?.id!==id)pick(id,true)});
 </script>
 
