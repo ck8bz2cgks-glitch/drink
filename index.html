@@ -89,6 +89,33 @@ input[type=number]{width:100%;font-family:var(--f-num);font-size:16px;color:var(
 button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .foot{font-size:12px;color:var(--muted)}
 .foot a{color:var(--accent)}
+.maker>summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.maker>summary::-webkit-details-marker{display:none}
+.maker>summary h2{margin:0;font-size:13px}
+.maker>summary .big{font-family:var(--f-display);font-size:24px;color:var(--ink);text-transform:none;letter-spacing:0;font-weight:400}
+.maker>summary .chev{font-size:18px;color:var(--muted);transition:transform .2s}
+.maker[open]>summary .chev{transform:rotate(180deg)}
+.mk{display:flex;flex-direction:column;gap:14px;margin-top:14px}
+.field{position:relative}
+.field input{width:100%;font:inherit;font-size:16px;color:var(--fg);background:var(--field);border:1.5px solid var(--line);border-radius:10px;padding:11px 14px}
+.field input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--accent);background:var(--accent-soft);color:var(--fg);border-radius:999px;padding:5px 6px 5px 12px;font-size:14px;font-weight:600}
+.chip button{border:0;background:transparent;color:var(--muted);font-size:16px;line-height:1;cursor:pointer;padding:2px 6px;border-radius:50%}
+.addq{display:flex;flex-wrap:wrap;gap:6px}
+.addq button,.taste button{border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:999px;padding:6px 12px;font:inherit;font-size:14px;cursor:pointer}
+.taste button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--surface)}
+.taste button.neg[aria-pressed="true"]{background:var(--muted);border-color:var(--muted)}
+.res{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px}
+.rcard{text-align:left;border:1px solid var(--line);background:var(--field);color:var(--fg);border-radius:10px;padding:10px 12px;cursor:pointer;font:inherit;display:flex;flex-direction:column;gap:4px;min-width:0}
+.rcard:hover{border-color:var(--accent)}
+.rcard b{font-size:16px}
+.rcard .miss{font-size:13px;color:#b3412e}
+.rcard .ok{font-size:13px;color:#2f7d4f}
+.rcard .tg{font-size:12px;color:var(--muted)}
+.rcard .tg em{font-style:normal;color:var(--accent);font-weight:700}
+.rhead{font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--muted);margin:4px 0 0}
+.hint{font-size:13px;color:var(--muted);margin:0}
 /* righello: sempre scuro per contrasto */
 .ruler{position:fixed;inset:0;z-index:50;background:#0b0f10;color:#f2f2f2;touch-action:none;user-select:none;-webkit-user-select:none;overflow:hidden}
 .ruler svg{position:absolute;inset:0;width:100%;height:100%}
@@ -119,6 +146,25 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
     </div>
     <div class="quick" id="quick"></div>
   </div>
+  <details class="card maker" id="maker">
+    <summary><span><h2>Cosa preparo?</h2><span class="big">Con quello che ho in casa</span></span><span class="chev" aria-hidden="true">▾</span></summary>
+    <div class="mk">
+      <div><h2>Ingredienti che hai</h2>
+        <div class="field" role="combobox" aria-expanded="false" aria-owns="isugg" aria-haspopup="listbox" id="icombo">
+          <input id="iq" type="text" placeholder="Scrivi un ingrediente: gin, lime, prosecco…" autocomplete="off" aria-autocomplete="list" aria-controls="isugg" aria-label="Aggiungi un ingrediente che hai">
+          <ul class="sugg" id="isugg" role="listbox" hidden></ul>
+        </div>
+        <div class="chips" id="pantry" style="margin-top:8px"></div>
+        <div class="addq" id="addq" style="margin-top:8px"></div>
+        <label class="toggle" style="margin-top:8px"><input type="checkbox" id="staples" checked> Ho anche zucchero, sciroppo di zucchero, ghiaccio e sale</label>
+      </div>
+      <div><h2>Che gusto preferisci?</h2>
+        <div class="field"><input id="tq" type="text" placeholder="Descrivilo: «fresco e un po' amaro», «dolce e cremoso»…" autocomplete="off" aria-label="Descrivi il gusto che preferisci"></div>
+        <div class="taste" id="taste" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px"></div>
+      </div>
+      <div id="results"></div>
+    </div>
+  </details>
   <div id="drink"></div>
   <p class="foot">Dosi dalla lista ufficiale <a href="https://iba-world.com/2021/02/02/2020-iba-official-cocktail-list/" target="_blank" rel="noopener">IBA (International Bartenders Association)</a>; i drink segnati come “classico” non sono nella lista IBA e seguono la ricetta più diffusa. Le storie riportano le versioni più accreditate: per molti drink l'origine è contesa. Bevi responsabilmente.</p>
 </div>
@@ -542,6 +588,112 @@ $("calr").addEventListener("input",e=>sizeCard(+e.target.value));
 $("calm").onclick=()=>{$("calr").value=(+$("calr").value-.02).toFixed(2);sizeCard(+$("calr").value)};
 $("calp").onclick=()=>{$("calr").value=(+$("calr").value+.02).toFixed(2);sizeCard(+$("calr").value)};
 $("calok").onclick=()=>{st.cal=+$("calr").value;try{localStorage.setItem("bar_cal",st.cal)}catch(e){}$("calib").hidden=true;R.zero=null;drawRuler()};
+
+
+/* ================= cosa preparo: ingredienti e gusto ================= */
+// ingredienti canonici: [chiave, nome mostrato, regola che riconosce i nomi nelle ricette]
+const ING=[
+ ["gin","Gin",/\bgin\b/],["vodka","Vodka",/vodka/],["rumb","Rum bianco",/rum bianco|rum bianco cubano/],["rums","Rum scuro o ambrato",/rum (ambrato|della martinica|scuro)/],
+ ["cachaca","Cachaça",/cacha/],["tequila","Tequila",/tequila/],["whisky","Whisky / bourbon",/whisk|bourbon|rye|scotch/],["cognac","Cognac o brandy",/cognac|brandy/],
+ ["pisco","Pisco",/pisco/],["grappa","Grappa",/grappa/],["campari","Campari",/campari/],["aperol","Aperol",/aperol/],["vrosso","Vermouth rosso",/vermouth rosso/],["vdry","Vermouth dry",/vermouth dry/],
+ ["bolle","Prosecco / spumante",/prosecco|spumante|champagne/],["vinob","Vino bianco",/vino bianco/],["triple","Triple sec / Cointreau",/triple sec|cointreau/],["caffeliq","Liquore al caffè",/liquore al caff/],
+ ["amaretto","Amaretto",/amaretto/],["maraschino","Maraschino",/maraschino/],["cassis","Crème de cassis",/cassis/],["mure","Crème de mûre",/m[uû]re/],["cacao","Crème de cacao",/cacao/],["menthe","Crème de menthe",/creme de menthe|crème de menthe/],
+ ["chartreuse","Chartreuse",/chartreuse/],["drambuie","Drambuie",/drambuie/],["fernet","Fernet-Branca",/fernet/],["nonino","Amaro Nonino",/nonino/],["lillet","Lillet",/lillet/],["pesca_liq","Liquore alla pesca",/liquore alla pesca/],
+ ["curacao","Curaçao",/cura[cç]ao/],["orzata","Sciroppo d'orzata",/orzata/],["granatina","Granatina",/granatina/],["benedictine","Bénédictine",/b[eé]n[eé]dictine/],["cherry","Cherry liqueur",/cherry/],["violette","Crème de violette",/violette/],
+ ["passion","Liquore al frutto della passione",/frutto della passione/],["angostura","Angostura",/angostura/],["lime","Lime",/\blime\b/],["limone","Limone",/limone/],["arancia","Succo d'arancia",/arancia/],["pompelmo","Pompelmo",/pompelmo/],
+ ["ananas","Succo d'ananas",/ananas/],["cranberry","Succo di mirtillo rosso",/mirtillo/],["pomodoro","Succo di pomodoro",/pomodoro/],["pesca","Pesche",/pesca bianca/],["fragola","Fragole o lamponi",/fragol|lampon/],
+ ["cocco","Crema di cocco",/cocco/],["panna","Panna",/panna/],["uova","Uova (albume)",/albume/],["espresso","Caffè espresso",/espresso/],["soda","Soda / acqua frizzante",/^soda$/],["tonica","Acqua tonica",/tonica/],
+ ["cola","Cola",/cola/],["gingerbeer","Ginger beer",/ginger beer/],["gingerale","Ginger ale",/ginger ale/],["menta","Menta fresca",/menta/],["miele","Miele",/miele/],["agave","Sciroppo d'agave",/agave/],["zenzero","Zenzero fresco",/zenzero/],["sambuco","Sciroppo di sambuco",/sambuco|camomilla/],["worcester","Worcestershire e Tabasco",/worcestershire/]
+];
+const STAPLE=/zucchero|sciroppo di zucchero|sciroppo alla vaniglia|^acqua$|sale|ghiaccio/;
+const ingKey=name=>{const n=name.toLowerCase().replace(/pompelmo rosa/,"pompelmo");if(/soda al pompelmo/.test(n))return"pompelmo";if(/^soda$/.test(n))return"soda";
+  for(const [k,,re] of ING)if(re.test(n))return k;return null};
+const ingName=k=>(ING.find(x=>x[0]===k)||[k,k])[1];
+// requisiti per drink: ingredienti principali (gli spruzzi sono facoltativi) + extra riconoscibili
+D.forEach(dr=>{const req=new Set(),opt=new Set(),stap=[];
+  dr.ing.forEach(i=>{const n=i[0].toLowerCase();if(STAPLE.test(n)){stap.push(n);return}const k=ingKey(i[0]);if(!k)return;(i[3]==="s"?opt:req).add(k)});
+  dr.extra.forEach(e=>{const n=e.toLowerCase();if(/facoltativ|a parte|a piacere/.test(n)&&!/menta/.test(n)){const k=ingKey(e);if(k)opt.add(k);return}
+    if(/zucchero|acqua/.test(n)&&!/menta|lime|angostura/.test(n)){stap.push(n);return}
+    ["menta","lime","angostura","zenzero","worcester","uova","passion","maraschino","violette"].forEach(k=>{const re=ING.find(x=>x[0]===k)[2];if(re.test(n)&&!req.has(k))req.add(k)});
+    if(/grand marnier/.test(n))opt.add("triple")});
+  dr.req=[...req];dr.opt=[...opt]});
+// gusto di ogni drink
+const TASTE={dolce:"Dolce",amaro:"Amaro",agrumato:"Agrumato",fruttato:"Fruttato",fresco:"Fresco",frizzante:"Frizzante",cremoso:"Cremoso",speziato:"Speziato",caffe:"Al caffè",secco:"Secco",forte:"Forte",leggero:"Leggero"};
+const OPP={dolce:"secco",secco:"dolce",forte:"leggero",leggero:"forte"};
+const TT={negroni:"amaro forte",americano:"amaro leggero frizzante",spritz:"amaro frizzante leggero agrumato",sbagliato:"amaro frizzante",mojito:"fresco agrumato frizzante dolce",daiquiri:"agrumato fresco",margarita:"agrumato forte",martini:"secco forte",manhattan:"forte speziato",oldfashioned:"forte dolce speziato",moscowmule:"speziato frizzante fresco agrumato",cosmopolitan:"fruttato agrumato",pinacolada:"dolce cremoso fruttato",bloodymary:"speziato",caipirinha:"agrumato forte fresco",maitai:"fruttato forte dolce",paloma:"agrumato frizzante fresco",whiskeysour:"agrumato dolce cremoso",collins:"agrumato frizzante fresco leggero",bellini:"fruttato frizzante dolce leggero",rossini:"fruttato frizzante dolce leggero",mimosa:"agrumato frizzante leggero",espressomartini:"caffe dolce cremoso",boulevardier:"amaro forte",french75:"frizzante agrumato",sidecar:"agrumato forte",whitelady:"agrumato secco",cubalibre:"dolce frizzante",longisland:"forte dolce agrumato",sunrise:"fruttato dolce",sexbeach:"fruttato dolce",julep:"fresco forte",aviation:"secco agrumato",blackrussian:"caffe dolce forte",whiterussian:"caffe cremoso dolce",bramble:"fruttato agrumato",grasshopper:"cremoso dolce fresco",piscosour:"agrumato cremoso",vesper:"secco forte",kir:"fruttato frizzante leggero",kirbianco:"fruttato leggero",ginfizz:"agrumato frizzante fresco",paperplane:"amaro agrumato",penicillin:"speziato agrumato forte",lastword:"agrumato forte",cloverclub:"fruttato cremoso agrumato",tommys:"agrumato forte",hankypanky:"amaro forte",alexander:"cremoso dolce",rustynail:"dolce forte",singaporesling:"fruttato dolce",horsesneck:"speziato frizzante",champagnecocktail:"frizzante secco",darkstormy:"speziato frizzante",frenchconnection:"dolce forte",godfather:"dolce forte",martinez:"dolce forte",hemingway:"agrumato secco",vento:"agrumato fresco",gintonic:"amaro frizzante fresco secco",garibaldi:"amaro agrumato leggero",hugo:"fresco frizzante leggero dolce",pornstar:"fruttato dolce"};
+D.forEach(dr=>dr.tags=(TT[dr.id]||"").split(" ").filter(Boolean));
+// parole del linguaggio comune → gusto
+const SYN=[[/dolc|zucchero|dessert|goloso/,"dolce"],[/amar|bitter|amarognol/,"amaro"],[/agrum|aspr|acid|limon|lime|sour/,"agrumato"],[/frutt|frutta|bacche|pesca|fragol/,"fruttato"],[/fresc|rinfresc|estiv|menta|dissetant/,"fresco"],[/frizz|bollicin|spumeggiant/,"frizzante"],[/crem|vellutat|morbid|panna/,"cremoso"],[/spezi|piccant|zenzero|pepat/,"speziato"],[/caff/,"caffe"],[/secc|poco dolce|non dolce/,"secco"],[/fort|alcolic|decis|robust/,"forte"],[/legger|delicat|poco alcol|leggerin|aperitivo leggero/,"leggero"]];
+function tasteFromText(t){const n=t.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");const out=new Set();
+  // "non dolce" / "non troppo forte" → il contrario
+  SYN.forEach(([re,k])=>{const m=n.match(new RegExp("(non( troppo| tanto)? |poco |meno )?("+re.source+")"));if(m){out.add(m[1]&&OPP[k]?OPP[k]:m[1]?null:k)}});out.delete(null);
+  if(out.has("forte")&&out.has("leggero"))out.delete(/poco alcol|poco fort|legger/.test(n)?"forte":"leggero");
+  if(out.has("dolce")&&out.has("secco"))out.delete(/non( troppo| tanto)? dolc|poco dolc|secc/.test(n)?"dolce":"secco");return[...out]}
+
+const MK={have:new Set(),staples:true,taste:new Set(),more:false};
+try{const s0=JSON.parse(localStorage.getItem("bar_pantry")||"null");if(s0){MK.have=new Set(s0.have||[]);MK.staples=s0.staples!==false;MK.taste=new Set(s0.taste||[])}}catch(e){}
+const saveMK=()=>{try{localStorage.setItem("bar_pantry",JSON.stringify({have:[...MK.have],staples:MK.staples,taste:[...MK.taste]}))}catch(e){}};
+const QUICK=["gin","vodka","rumb","tequila","whisky","campari","aperol","vrosso","bolle","triple","lime","limone","arancia","soda","tonica","cola","gingerbeer","menta"];
+
+function analyze(){
+  const out=D.map(dr=>{const miss=dr.req.filter(k=>!MK.have.has(k));const stapOk=MK.staples;
+    const t=[...MK.taste];let ts=0;t.forEach(k=>{if(dr.tags.includes(k))ts+=2;if(OPP[k]&&dr.tags.includes(OPP[k]))ts-=3});
+    const match=t.filter(k=>dr.tags.includes(k));
+    return{dr,miss:stapOk?miss:miss.concat(["zucchero"].filter(()=>/zucchero|sciroppo/.test(dr.ing.map(i=>i[0]).join(" ")+dr.extra.join(" ").toLowerCase()))),ts,match}});
+  return out;
+}
+function renderMaker(){
+  $("pantry").innerHTML=[...MK.have].map(k=>`<span class="chip">${esc(ingName(k))}<button type="button" data-rm="${k}" aria-label="Togli ${esc(ingName(k))}">×</button></span>`).join("")||'<p class="hint">Nessun ingrediente inserito: scrivilo sopra o tocca quelli qui sotto.</p>';
+  $("addq").innerHTML=QUICK.filter(k=>!MK.have.has(k)).map(k=>`<button type="button" data-add="${k}">+ ${esc(ingName(k))}</button>`).join("");
+  $("staples").checked=MK.staples;
+  $("taste").innerHTML=Object.entries(TASTE).map(([k,n])=>`<button type="button" data-t="${k}" aria-pressed="${MK.taste.has(k)}">${n}</button>`).join("");
+  const R=$("results");
+  if(!MK.have.size&&!MK.taste.size){R.innerHTML='<p class="hint">Aggiungi gli ingredienti che hai e scegli un gusto: qui compaiono i drink che puoi preparare.</p>';return}
+  let A=analyze();
+  const byTaste=(a,b)=>b.ts-a.ts||a.miss.length-b.miss.length||a.dr.n.localeCompare(b.dr.n);
+  if(MK.taste.size)A=A.filter(x=>x.ts>0||!MK.taste.size);
+  const card=x=>`<button type="button" class="rcard" data-open="${x.dr.id}"><b>${esc(x.dr.n)}</b>
+    ${MK.have.size?(x.miss.length?`<span class="miss">Manca: ${x.miss.map(ingName).map(esc).join(", ")}</span>`:'<span class="ok">Hai tutto ✓</span>'):""}
+    <span class="tg">${x.dr.tags.map(t=>x.match.includes(t)?`<em>${TASTE[t]}</em>`:TASTE[t]).join(" · ")}</span></button>`;
+  let h="";
+  if(MK.have.size){
+    const ready=A.filter(x=>!x.miss.length).sort(byTaste),one=A.filter(x=>x.miss.length===1).sort(byTaste),two=A.filter(x=>x.miss.length===2).sort(byTaste);
+    h+=`<p class="rhead">Puoi prepararli subito · ${ready.length}</p>`+(ready.length?`<div class="res">${ready.map(card).join("")}</div>`:'<p class="hint">Ancora nessuno con tutti gli ingredienti: guarda quelli a cui manca poco.</p>');
+    if(one.length)h+=`<p class="rhead" style="margin-top:12px">Ti manca un ingrediente · ${one.length}</p><div class="res">${one.slice(0,MK.more?99:8).map(card).join("")}</div>`;
+    if(two.length&&(MK.more||ready.length+one.length<6))h+=`<p class="rhead" style="margin-top:12px">Ti mancano due ingredienti · ${two.length}</p><div class="res">${two.slice(0,MK.more?99:6).map(card).join("")}</div>`;
+    if(!MK.more&&(one.length>8||two.length))h+=`<button type="button" class="btn" data-more="1" style="margin-top:10px">Mostra altri</button>`;
+  }else{
+    const top=A.sort(byTaste).slice(0,MK.more?30:12);
+    h+=`<p class="rhead">Adatti al tuo gusto · ${A.length}</p><div class="res">${top.map(card).join("")}</div>`+(A.length>12&&!MK.more?`<button type="button" class="btn" data-more="1" style="margin-top:10px">Mostra altri</button>`:"");
+  }
+  R.innerHTML=h;
+}
+// barra ingredienti con suggerimenti
+const iq=$("iq"),isg=$("isugg");let iact=0,ilist=[];
+function ingMatch(t){const n=norm(t);if(!n)return[];return ING.filter(([k,name])=>!MK.have.has(k)&&(norm(name).includes(n)||k.includes(n))).sort((a,b)=>norm(a[1]).indexOf(n)-norm(b[1]).indexOf(n)).slice(0,8)}
+function showI(){ilist=ingMatch(iq.value);iact=0;if(!iq.value.trim()){isg.hidden=true;$("icombo").setAttribute("aria-expanded","false");return}
+  isg.innerHTML=ilist.length?ilist.map((x,i)=>`<li role="option" id="io-${i}" data-k="${x[0]}" aria-selected="${i===iact}"><span>${hl(x[1],iq.value.trim())}</span></li>`).join(""):'<li class="none" role="option" aria-disabled="true">Nessun ingrediente con questo nome nelle ricette.</li>';
+  isg.hidden=false;$("icombo").setAttribute("aria-expanded","true")}
+function addIng(k){MK.have.add(k);MK.more=false;iq.value="";isg.hidden=true;$("icombo").setAttribute("aria-expanded","false");saveMK();renderMaker()}
+iq.addEventListener("input",showI);
+iq.addEventListener("keydown",e=>{if(e.key==="ArrowDown"&&ilist.length){e.preventDefault();iact=(iact+1)%ilist.length}else if(e.key==="ArrowUp"&&ilist.length){e.preventDefault();iact=(iact-1+ilist.length)%ilist.length}
+  else if(e.key==="Enter"){e.preventDefault();if(ilist[iact])addIng(ilist[iact][0]);return}else if(e.key==="Escape"){isg.hidden=true;return}else return;
+  [...isg.querySelectorAll("li[data-k]")].forEach((li,i)=>li.setAttribute("aria-selected",i===iact));iq.setAttribute("aria-activedescendant","io-"+iact)});
+isg.addEventListener("mousedown",e=>e.preventDefault());
+isg.addEventListener("click",e=>{const li=e.target.closest("li[data-k]");if(li)addIng(li.dataset.k)});
+document.addEventListener("click",e=>{if(!e.target.closest("#icombo"))isg.hidden=true});
+$("maker").addEventListener("click",e=>{
+  const rm=e.target.closest("[data-rm]");if(rm){MK.have.delete(rm.dataset.rm);saveMK();renderMaker();return}
+  const ad=e.target.closest("[data-add]");if(ad){addIng(ad.dataset.add);return}
+  const t=e.target.closest("[data-t]");if(t){const k=t.dataset.t;if(MK.taste.has(k))MK.taste.delete(k);else{MK.taste.add(k);if(OPP[k])MK.taste.delete(OPP[k])}$("tq").value="";saveMK();renderMaker();return}
+  if(e.target.closest("[data-more]")){MK.more=true;renderMaker();return}
+  const o=e.target.closest("[data-open]");if(o){pick(o.dataset.open);setTimeout(()=>$("drink").scrollIntoView({behavior:"smooth",block:"start"}),50)}
+});
+$("staples").addEventListener("change",e=>{MK.staples=e.target.checked;saveMK();renderMaker()});
+let tqT;$("tq").addEventListener("input",e=>{clearTimeout(tqT);tqT=setTimeout(()=>{const v=e.target.value.trim();if(!v)return;MK.taste=new Set(tasteFromText(v));saveMK();renderMaker()},250)});
+try{if(localStorage.getItem("bar_maker_open")==="1")$("maker").open=true}catch(e){}
+$("maker").addEventListener("toggle",()=>{try{localStorage.setItem("bar_maker_open",$("maker").open?"1":"0")}catch(e){}});
+renderMaker();
 
 /* avvio */
 const startId=(location.hash||"").slice(1);
